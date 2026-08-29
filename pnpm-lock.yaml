@@ -96,12 +96,18 @@ importers:
 
   apps/server:
     dependencies:
+      '@fastify/cookie':
+        specifier: 11.1.2
+        version: 11.1.2
       '@fastify/cors':
         specifier: 11.3.0
         version: 11.3.0
       '@fastify/helmet':
         specifier: 13.1.1
         version: 13.1.1
+      '@fastify/rate-limit':
+        specifier: 11.2.0
+        version: 11.2.0
       '@fastify/static':
         specifier: 10.1.3
         version: 10.1.3
@@ -114,6 +120,12 @@ importers:
       '@lingcoo-tech/http':
         specifier: 0.1.1
         version: 0.1.1
+      '@lingcoo-tech/security':
+        specifier: 0.1.1
+        version: 0.1.1
+      '@ts-fastify-business-starter/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       dotenv:
         specifier: 17.4.2
         version: 17.4.2
@@ -1153,6 +1165,12 @@ packages:
         integrity: sha512-NtuzM0SfaMJbGlnjr9LWQUN5LzgSrbB8tf/wRZNas+4E1O/Nmzl53e7ruT61HDZyRCJGC6FxIogmNZO1c5ETBA==,
       }
 
+  '@fastify/cookie@11.1.2':
+    resolution:
+      {
+        integrity: sha512-Dtrpk/YOGUsbRMvP/8ZqPpwnMRv0qSqodFdoQ2B589Obc7jw4s4Qla+cV72Bsm7WsZJnqlYFX/i7uSBq0xzg6g==,
+      }
+
   '@fastify/cors@11.3.0':
     resolution:
       {
@@ -1193,6 +1211,12 @@ packages:
     resolution:
       {
         integrity: sha512-INS+6gh91cLUjB+PVHfu1UqcB76Sqtpyp7bnL+FYojhjygvOPA9ctiD/JDKsyD9Xgu4hUhCSJBPig/w7duNajw==,
+      }
+
+  '@fastify/rate-limit@11.2.0':
+    resolution:
+      {
+        integrity: sha512-X7osJd4XSvMoejYrnJkSZYYjY1eNYoBqhjlzf1RakC2204qExFqZFTKj5+T7VuzA/iUI9Z3UoSqQRkB2HpG0oQ==,
       }
 
   '@fastify/send@4.1.1':
@@ -1264,6 +1288,12 @@ packages:
     resolution:
       {
         integrity: sha512-EXgsnyfpWIncQY8ify9YsJjDhOOpY7ziwAn5hdW2+4lE+tajnl1ylhkX3y6e3FM6d9LUorwI3iholk+2dNvkVQ==,
+      }
+
+  '@lingcoo-tech/security@0.1.1':
+    resolution:
+      {
+        integrity: sha512-s6YrYviCoJYbZZI1t1BDAuyLxJk5ThtbgxSAJgbFxQ9qgF68eNv6AsjMwzXlC5jVgxubbxlslCF+tStbfwzNVQ==,
       }
 
   '@lukeed/ms@2.0.2':
@@ -2297,6 +2327,13 @@ packages:
       }
     engines: { node: '>=18' }
 
+  cookie@2.0.1:
+    resolution:
+      {
+        integrity: sha512-yuToqVvRrj6pfDXREyQAAv8SkAEk/8GS3jQRTiUMm66TVtBYmqQeoEjL2Lmq8Rpo6271vH76InTChTitEAm65w==,
+      }
+    engines: { node: '>=22' }
+
   cross-spawn@7.0.6:
     resolution:
       {
@@ -2844,6 +2881,13 @@ packages:
         integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==,
       }
 
+  ip-address@10.5.0:
+    resolution:
+      {
+        integrity: sha512-R5SnVLJmgYYvf2F2ZgwSBnelz5G4q5AxIC277GDfUaNbrZKNANcBC7RHqYYePlszf4kBolVkJauG0ZjHHFh55g==,
+      }
+    engines: { node: '>= 12' }
+
   ipaddr.js@2.5.0:
     resolution:
       {
@@ -2881,6 +2925,12 @@ packages:
     resolution:
       {
         integrity: sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==,
+      }
+
+  jose@6.2.10:
+    resolution:
+      {
+        integrity: sha512-iiW7J9qRFlGxvCOIBDBDxFePQSn7ZMAnrYGhrrOo6siO/MIqwfyilLR27pkfDgUk+raLuzADS8A3S/KLBisc0g==,
       }
 
   js-tokens@4.0.0:
@@ -4414,6 +4464,11 @@ snapshots:
       ajv-formats: 3.0.1(ajv@8.20.0)
       fast-uri: 4.1.3
 
+  '@fastify/cookie@11.1.2':
+    dependencies:
+      cookie: 2.0.1
+      fastify-plugin: 6.0.0
+
   '@fastify/cors@11.3.0':
     dependencies:
       fastify-plugin: 6.0.0
@@ -4440,6 +4495,13 @@ snapshots:
     dependencies:
       '@fastify/forwarded': 3.0.2
       ipaddr.js: 2.5.0
+
+  '@fastify/rate-limit@11.2.0':
+    dependencies:
+      '@lukeed/ms': 2.0.2
+      fastify-plugin: 6.0.0
+      ip-address: 10.5.0
+      toad-cache: 3.7.4
 
   '@fastify/send@4.1.1':
     dependencies:
@@ -4496,6 +4558,10 @@ snapshots:
   '@jridgewell/sourcemap-codec@1.6.0': {}
 
   '@lingcoo-tech/http@0.1.1': {}
+
+  '@lingcoo-tech/security@0.1.1':
+    dependencies:
+      jose: 6.2.10
 
   '@lukeed/ms@2.0.2': {}
 
@@ -5241,6 +5307,8 @@ snapshots:
 
   cookie@1.1.1: {}
 
+  cookie@2.0.1: {}
+
   cross-spawn@7.0.6:
     dependencies:
       path-key: 3.1.1
@@ -5581,6 +5649,8 @@ snapshots:
 
   inherits@2.0.4: {}
 
+  ip-address@10.5.0: {}
+
   ipaddr.js@2.5.0: {}
 
   is-extglob@2.1.1: {}
@@ -5594,6 +5664,8 @@ snapshots:
   is-potential-custom-element-name@1.0.1: {}
 
   isexe@2.0.0: {}
+
+  jose@6.2.10: {}
 
   js-tokens@4.0.0: {}
 

@@ -12,7 +12,7 @@ export default defineConfig({
       API_HOST: '127.0.0.1',
       API_PORT: '8090',
       CORS_ORIGIN: 'http://localhost:5173',
-      DATABASE_URL: 'postgres://test:test@127.0.0.1:5438/test',
+      DATABASE_URL: process.env.DATABASE_URL ?? 'postgres://test:test@127.0.0.1:5438/test',
       API_DOCS_ENABLED: 'false',
       TRUST_PROXY: 'false',
       LOG_LEVEL: 'silent',

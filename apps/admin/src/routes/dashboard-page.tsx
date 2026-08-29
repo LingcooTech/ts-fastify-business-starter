@@ -22,7 +22,7 @@ export function DashboardPage() {
   return (
     <PageContainer
       title="工程基础"
-      description="阶段 0 只建立稳定的后台壳层和共享边界，不提前铺设业务模块。"
+      description="工程底座与 Identity 认证闭环已就绪，后续模块继续按边界纵向交付。"
       actions={
         <Link to="/showcase">
           <Button type="primary">查看 UI 基础</Button>
@@ -32,10 +32,7 @@ export function DashboardPage() {
       <Card className="dashboard-hero">
         <span className="dashboard-hero__eyebrow">FASTIFY MODULAR MONOLITH</span>
         <h2>后台基础已经可以被持续验收</h2>
-        <p>
-          Admin 与 Web 保持独立入口。后续从 Identity
-          开始，每次只完成一个模块的数据库、API、页面和测试。
-        </p>
+        <p>Admin 与 Web 保持独立入口。Identity 已完成数据库、API、客户端、页面和安全测试闭环。</p>
       </Card>
 
       <div className="foundation-grid">
@@ -79,10 +76,10 @@ export function DashboardPage() {
             下一个模块
           </Typography.Title>
           <div style={{ marginTop: 10 }}>
-            <StatusTag tone="processing">Identity</StatusTag>
+            <StatusTag tone="processing">Access Control</StatusTag>
           </div>
           <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
-            工程基础验收完成后才开始账号、会话和登录闭环。
+            下一阶段集中完成角色、权限、用户管理与前后端权限门禁。
           </Typography.Paragraph>
         </Card>
       </div>

@@ -33,6 +33,7 @@ pnpm install
 cp .env.example .env
 docker compose up -d
 pnpm db:migrate
+pnpm db:bootstrap
 pnpm dev
 ```
 

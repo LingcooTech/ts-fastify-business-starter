@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { AdminShell } from '../layouts/AdminShell';
+import { RequireSession } from '../features/identity/RequireSession';
 import { ForbiddenPage, NotFoundPage, UnauthorizedPage } from '../routes/error-pages';
 
 const DashboardPage = lazy(() =>
@@ -10,6 +11,34 @@ const DashboardPage = lazy(() =>
 );
 const ShowcasePage = lazy(() =>
   import('../routes/showcase-page').then((module) => ({ default: module.ShowcasePage })),
+);
+const LoginPage = lazy(() =>
+  import('../features/identity/LoginPage').then((module) => ({ default: module.LoginPage })),
+);
+const ForgotPasswordPage = lazy(() =>
+  import('../features/identity/PasswordResetPages').then((module) => ({
+    default: module.ForgotPasswordPage,
+  })),
+);
+const ResetPasswordPage = lazy(() =>
+  import('../features/identity/PasswordResetPages').then((module) => ({
+    default: module.ResetPasswordPage,
+  })),
+);
+const VerifyEmailPage = lazy(() =>
+  import('../features/identity/VerifyEmailPage').then((module) => ({
+    default: module.VerifyEmailPage,
+  })),
+);
+const AccountSecurityPage = lazy(() =>
+  import('../features/identity/AccountSecurityPage').then((module) => ({
+    default: module.AccountSecurityPage,
+  })),
+);
+const ActiveSessionsPage = lazy(() =>
+  import('../features/identity/ActiveSessionsPage').then((module) => ({
+    default: module.ActiveSessionsPage,
+  })),
 );
 
 function RouteLoading() {
@@ -24,13 +53,21 @@ export function AppRouter() {
   return (
     <Suspense fallback={<RouteLoading />}>
       <Routes>
-        <Route element={<AdminShell />}>
-          <Route index element={<DashboardPage />} />
-          <Route path="showcase" element={<ShowcasePage />} />
-          <Route path="forbidden" element={<ForbiddenPage />} />
-          <Route path="unauthorized" element={<UnauthorizedPage />} />
-          <Route path="home" element={<Navigate to="/" replace />} />
-          <Route path="*" element={<NotFoundPage />} />
+        <Route path="login" element={<LoginPage />} />
+        <Route path="forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="reset-password" element={<ResetPasswordPage />} />
+        <Route path="verify-email" element={<VerifyEmailPage />} />
+        <Route element={<RequireSession />}>
+          <Route element={<AdminShell />}>
+            <Route index element={<DashboardPage />} />
+            <Route path="showcase" element={<ShowcasePage />} />
+            <Route path="account/security" element={<AccountSecurityPage />} />
+            <Route path="account/sessions" element={<ActiveSessionsPage />} />
+            <Route path="forbidden" element={<ForbiddenPage />} />
+            <Route path="unauthorized" element={<UnauthorizedPage />} />
+            <Route path="home" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Route>
         </Route>
       </Routes>
     </Suspense>

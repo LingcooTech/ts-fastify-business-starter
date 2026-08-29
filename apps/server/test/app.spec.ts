@@ -15,6 +15,15 @@ const environment: AppEnvironment = {
   API_DOCS_ENABLED: false,
   TRUST_PROXY: false,
   LOG_LEVEL: 'silent',
+  AUTH_SESSION_TTL_SECONDS: 604_800,
+  AUTH_ACTION_TOKEN_TTL_SECONDS: 3_600,
+  AUTH_COOKIE_NAME: 'test_session',
+  AUTH_CSRF_COOKIE_NAME: 'test_csrf',
+  AUTH_COOKIE_SAME_SITE: 'lax',
+  AUTH_COOKIE_SECURE: false,
+  AUTH_EXPOSE_TEST_TOKENS: true,
+  BOOTSTRAP_OWNER_EMAIL: undefined,
+  BOOTSTRAP_OWNER_PASSWORD: undefined,
 };
 
 function fakeDatabase(options: { pingError?: Error } = {}) {

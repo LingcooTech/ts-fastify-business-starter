@@ -9,9 +9,12 @@
     "node": ">=24.0.0 <25"
   },
   "scripts": {
+    "predev": "corepack pnpm --filter @ts-fastify-business-starter/contracts build",
     "dev": "corepack pnpm --parallel --filter @ts-fastify-business-starter/server --filter @ts-fastify-business-starter/admin --filter @ts-fastify-business-starter/web dev",
+    "predev:server": "corepack pnpm --filter @ts-fastify-business-starter/contracts build",
     "dev:server": "corepack pnpm --filter @ts-fastify-business-starter/server dev",
     "dev:worker": "corepack pnpm --filter @ts-fastify-business-starter/server dev:worker",
+    "predev:admin": "corepack pnpm --filter @ts-fastify-business-starter/contracts build",
     "dev:admin": "corepack pnpm --filter @ts-fastify-business-starter/admin dev",
     "dev:web": "corepack pnpm --filter @ts-fastify-business-starter/web dev",
     "build": "corepack pnpm -r --if-present run build",
@@ -30,6 +33,7 @@
     "e2e": "playwright test",
     "db:generate": "corepack pnpm --filter @ts-fastify-business-starter/server db:generate",
     "db:migrate": "corepack pnpm --filter @ts-fastify-business-starter/server db:migrate",
+    "db:bootstrap": "corepack pnpm --filter @ts-fastify-business-starter/server db:bootstrap",
     "db:studio": "corepack pnpm --filter @ts-fastify-business-starter/server db:studio",
     "start": "corepack pnpm --filter @ts-fastify-business-starter/server start:prod",
     "start:worker": "corepack pnpm --filter @ts-fastify-business-starter/server start:worker"

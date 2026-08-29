@@ -78,6 +78,16 @@ try {
   ];
   compose(migrationCommand);
   compose(migrationCommand);
+  const bootstrapCommand = [
+    'run',
+    '--rm',
+    '--no-deps',
+    'api',
+    'node',
+    'apps/server/dist/entrypoints/bootstrap.js',
+  ];
+  compose(bootstrapCommand);
+  compose(bootstrapCommand);
   compose(['up', '-d', 'api', 'worker', 'caddy']);
   await waitForReady(`http://127.0.0.1:${hostPort}/health/ready`);
   execFileSync('curl', ['-fsS', `http://127.0.0.1:${hostPort}/health/live`], { stdio: 'inherit' });

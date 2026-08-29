@@ -11,9 +11,10 @@
 ## 当前实施状态
 
 - 阶段 0：已于 2026-08-30 完成；
+- 阶段 1 Identity：已于 2026-08-30 完成；
 - 当前质量门禁：Format、Lint、Typecheck、Unit、Build、Admin Static Smoke、Playwright、Docker Smoke 均通过；
-- 下一阶段：Identity；
-- Identity 开始前不并行创建 Access Control 或其他模块骨架。
+- 下一阶段：Access Control；
+- Access Control 开始前不并行创建 Audit 或其他模块骨架。
 
 ## 1. 最终决策
 
@@ -391,7 +392,7 @@ Page Header
 - 忘记和重置密码；
 - 修改密码；
 - Session 撤销；
-- 初始 Owner Bootstrap。
+- 初始账号 Bootstrap（下一阶段由 Access Control 幂等分配 Owner 角色）。
 
 不负责：
 
@@ -403,9 +404,14 @@ Admin 页面：
 
 - Login；
 - Account Security；
-- Users；
-- User Detail；
 - Active Sessions。
+
+账号目录、账号详情、启停账号和角色分配需要明确的管理权限，统一放在下一阶段 Access
+Control 一次性交付。Identity 只提供公开的账号查询/管理 Port，不注册弱授权的临时管理 API。
+
+邮箱验证与密码找回由 Identity 拥有令牌生命周期，并通过 `IdentityActionDeliveryPort`
+投递。阶段 1 提供仅限开发/测试的令牌暴露机制；阶段 8 Mail 通过 Composition Root 接入正式投递，
+不修改 Identity 的 Schema、Service 或 API。
 
 关键验收：
 
@@ -798,6 +804,17 @@ Admin 页面：
 ### 阶段 1：Identity
 
 一次完整交付 Identity 后再进入阶段 2。
+
+完成内容：
+
+1. 账号、密码凭据、Session、一次性操作令牌四张表及 Migration；
+2. 登录、退出、当前账号、修改密码、密码重置、邮箱验证、活动会话 API；
+3. HttpOnly Session Cookie、会话绑定 CSRF、令牌摘要、生产 Cookie 配置约束；
+4. 登录和敏感操作限速及标准 429 错误；
+5. 幂等 Bootstrap 账号命令；
+6. 供 Access Control 调用、但不临时开放 HTTP 的账号查询和管理 Port；
+7. Contracts、无 React API Client、Admin 登录门禁、账号安全和活动会话页面；
+8. PostgreSQL 集成测试、桌面/移动端 Playwright、生产静态托管和 Docker 验收。
 
 ### 阶段 2：Access Control
 

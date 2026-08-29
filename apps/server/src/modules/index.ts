@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import type { AppEnvironment } from '../config/environment.js';
 import type { DatabaseHandle } from '../database/database.js';
 import { createHealthModule } from './health/plugin.js';
+import { createIdentityModule } from './identity/plugin.js';
 
 export interface ApplicationModuleDependencies {
   environment: AppEnvironment;
@@ -14,4 +15,5 @@ export async function registerApplicationModules(
   dependencies: ApplicationModuleDependencies,
 ): Promise<void> {
   await app.register(createHealthModule(dependencies));
+  await app.register(createIdentityModule(dependencies));
 }

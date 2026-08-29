@@ -4,3 +4,4 @@ export * from './common/pagination.js';
 export * from './common/sorting.js';
 export * from './common/time.js';
 export * from './health.js';
+export * from './identity.js';

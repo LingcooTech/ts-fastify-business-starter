@@ -26,6 +26,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { foundationNavigation, selectedNavigationKey } from '../app/navigation';
 import { useThemeMode } from '../app/theme-context';
 import { CommandPalette } from '../components/CommandPalette';
+import { useLogout, useSession } from '../features/identity/hooks';
 
 const { Header, Sider, Content } = Layout;
 const { useBreakpoint } = Grid;
@@ -46,6 +47,8 @@ export function AdminShell() {
   const desktop = Boolean(screens.lg);
   const navigate = useNavigate();
   const location = useLocation();
+  const session = useSession();
+  const logout = useLogout();
   const { mode, toggle } = useThemeMode();
   const { token } = theme.useToken();
   const menuItems = useMemo(
@@ -145,16 +148,24 @@ export function AdminShell() {
             <Dropdown
               menu={{
                 items: [
-                  { key: 'account', label: '账号安全', disabled: true },
+                  { key: 'account', label: '账号安全' },
+                  { key: 'sessions', label: '活动会话' },
                   { type: 'divider' },
-                  { key: 'logout', label: 'Identity 模块完成后启用', disabled: true },
+                  { key: 'logout', label: '退出登录', danger: true },
                 ],
+                onClick: ({ key }) => {
+                  if (key === 'account') navigate('/account/security');
+                  if (key === 'sessions') navigate('/account/sessions');
+                  if (key === 'logout') logout.mutate();
+                },
               }}
             >
               <Button type="text">
                 <Space>
                   <Avatar size="small" icon={<UserOutlined />} />
-                  {desktop && <span>Bootstrap Owner</span>}
+                  {desktop && (
+                    <span>{session.data?.user.displayName ?? session.data?.user.email}</span>
+                  )}
                 </Space>
               </Button>
             </Dropdown>

@@ -2,10 +2,13 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import cors from '@fastify/cors';
+import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
+import rateLimit from '@fastify/rate-limit';
 import fastifyStatic from '@fastify/static';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import { ApiError } from '@lingcoo-tech/http';
 import Fastify, { type FastifyInstance } from 'fastify';
 
 import type { AppEnvironment } from './config/environment.js';
@@ -43,6 +46,14 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   await app.register(cors, {
     origin: corsOrigins(environment.CORS_ORIGIN),
     credentials: true,
+  });
+  await app.register(cookie);
+  await app.register(rateLimit, {
+    global: false,
+    errorResponseBuilder: (_request, context) =>
+      new ApiError(429, 'RATE_LIMIT_EXCEEDED', '请求过于频繁，请稍后重试', {
+        retryAfter: context.after,
+      }),
   });
   await app.register(helmet, {
     contentSecurityPolicy: environment.API_DOCS_ENABLED ? false : undefined,
