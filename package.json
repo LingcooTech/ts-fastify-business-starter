@@ -1,0 +1,44 @@
+{
+  "name": "ts-fastify-business-starter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A production-ready native Fastify application starter with a pnpm workspace.",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@11.21.0",
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
+  "scripts": {
+    "dev": "corepack pnpm --parallel --filter @ts-fastify-business-starter/server --filter @ts-fastify-business-starter/admin --filter @ts-fastify-business-starter/web dev",
+    "dev:server": "corepack pnpm --filter @ts-fastify-business-starter/server dev",
+    "dev:worker": "corepack pnpm --filter @ts-fastify-business-starter/server dev:worker",
+    "dev:admin": "corepack pnpm --filter @ts-fastify-business-starter/admin dev",
+    "dev:web": "corepack pnpm --filter @ts-fastify-business-starter/web dev",
+    "build": "corepack pnpm -r --if-present run build",
+    "typecheck": "corepack pnpm -r --if-present run typecheck",
+    "test": "corepack pnpm -r --if-present run test",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check:toolchain": "node scripts/check-toolchain.mjs",
+    "check:boundaries": "node scripts/check-module-boundaries.mjs",
+    "check": "corepack pnpm check:toolchain && corepack pnpm check:boundaries && corepack pnpm smoke:module-generator && corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build",
+    "generate:module": "node scripts/generate-module.mjs",
+    "smoke:module-generator": "node scripts/verify-module-generator.mjs",
+    "smoke:docker": "node scripts/verify-docker-smoke.mjs",
+    "db:generate": "corepack pnpm --filter @ts-fastify-business-starter/server db:generate",
+    "db:migrate": "corepack pnpm --filter @ts-fastify-business-starter/server db:migrate",
+    "db:studio": "corepack pnpm --filter @ts-fastify-business-starter/server db:studio",
+    "start": "corepack pnpm --filter @ts-fastify-business-starter/server start:prod",
+    "start:worker": "corepack pnpm --filter @ts-fastify-business-starter/server start:worker"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.5.2",
+    "eslint": "10.8.1",
+    "globals": "17.11.0",
+    "prettier": "3.9.6",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.67.0"
+  }
+}
