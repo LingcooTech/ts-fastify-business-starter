@@ -14,6 +14,7 @@ const expectedFiles = [
   'api/routes.ts',
   'application/service.ts',
   'domain/status.ts',
+  'infrastructure/persistence/index.ts',
   'infrastructure/persistence/status.schema.ts',
 ];
 

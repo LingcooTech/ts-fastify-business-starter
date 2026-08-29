@@ -69,11 +69,13 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     await app.register(fastifyStatic, {
       root: adminRoot,
       prefix: '/admin/',
-      decorateReply: false,
+      wildcard: false,
     });
+    app.get('/admin', async (_request, reply) => reply.redirect('/admin/'));
+    app.get('/admin/*', async (_request, reply) => reply.sendFile('index.html', adminRoot));
   }
   if (existsSync(webRoot)) {
-    await app.register(fastifyStatic, { root: webRoot, prefix: '/' });
+    await app.register(fastifyStatic, { root: webRoot, prefix: '/', decorateReply: false });
   }
 
   return app;

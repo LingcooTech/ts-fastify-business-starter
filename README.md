@@ -1,8 +1,8 @@
-# Lingcoo TS Fastify App Starter
+# Lingcoo TS Fastify Business Starter
 
-一个基于原生 Fastify、TypeScript、PostgreSQL、Drizzle、React 和 pnpm workspace 的标准应用起步工程。
+一个基于原生 Fastify、TypeScript、PostgreSQL、Drizzle、React 和 pnpm workspace 的通用业务应用起步工程。
 
-它提供可运行、可测试、可构建、可部署的空白应用底座，不预置身份、权限、支付或任何行业业务。
+它保持模块化单体和独立前端入口，在 Base Starter 的工程底座上逐模块增加经过真实项目验证的后台通用能力，不包含教育、零售或平台行业模型。
 
 ## 技术结构
 
@@ -10,9 +10,11 @@
 ts-fastify-business-starter/
 ├── apps/
 │   ├── server/       # 原生 Fastify API、Worker、Migration
-│   ├── admin/        # React + Vite 管理端空壳
-│   └── web/          # React + Vite 公共 Web 空壳
-├── packages/         # 应用内稳定共享契约，默认留空
+│   ├── admin/        # React + Vite + Ant Design 管理端
+│   └── web/          # 独立公共 Web 入口，本轮保持空白
+├── packages/
+│   ├── contracts/    # Server 与浏览器共享的 Zod Contract
+│   └── api-client/   # 无 React 和 UI 依赖的 Fetch Client
 ├── scripts/          # 质量、边界、生成和 smoke 验证
 ├── docker/           # Caddy 配置
 ├── deploy/           # 生产部署脚本与环境模板
@@ -50,20 +52,7 @@ pnpm dev:worker
 
 ## 创建新项目
 
-CLI 发布后可使用：
-
-```bash
-npx @lingcoo-tech/create-ts-fastify-app-starter@latest my-app
-```
-
-仓库内维护者可以使用本地模板验证：
-
-```bash
-node create-ts-fastify-app-starter/cli.mjs /tmp/my-app \
-  --template-path . \
-  --skip-install \
-  --no-git
-```
+Business Starter CLI 将在通用模块完成后单独发布。当前仓库用于按实施方案逐模块建设和验证模板本身。
 
 ## 开发业务模块
 
@@ -87,8 +76,9 @@ pnpm generate:module catalog
 ```bash
 pnpm check
 pnpm smoke:module-generator
-pnpm smoke:generated
+pnpm smoke:admin-static
 pnpm smoke:docker
+pnpm e2e
 ```
 
 `pnpm check` 包括工具链、starter 版本、模块边界、格式、Lint、类型、测试和 production build。
@@ -100,17 +90,11 @@ pnpm smoke:docker
 - [部署](docs/deployment.md)
 - [质量标准](docs/quality-bar.md)
 
-## 边界
+## 实施边界
 
-基础 Starter 默认不包含：
+通用模块按照 Identity、Access Control、Audit、Settings、Idempotency、Jobs、Outbox、Mail、Notifications、Storage、Branding、Payments 的顺序逐个闭环实施。
 
-- Identity、RBAC、Settings、Audit；
-- Jobs、Outbox、Mail、Notifications；
-- Storage、Payments；
-- Redis、消息队列和对象存储服务；
-- 教育、零售或其他行业领域模型。
-
-这些能力应由后续 Business preset 或真实项目按需加入。
+当前明确不包含 SaaS 多租户、CMS、Entitlement、AI Gateway，以及教育、零售或 Core Stack 的行业领域模型。完整顺序和完成标准见[通用模块实施方案](docs/common-business-modules-implementation-plan.md)。
 
 ## 许可证
 

@@ -35,7 +35,14 @@ modules/<name>/
 
 ## Packages 边界
 
-`packages/` 只用于当前应用内多个 surface 真正共享的稳定契约，例如 API contracts 或 browser API client。数据库、Repository、完整服务端模块和单消费者工具不应移入 package。
+`packages/` 只用于当前应用内多个 surface 真正共享的稳定契约：
+
+- `packages/contracts` 不依赖 Fastify、Drizzle、React 或 UI 框架；
+- `packages/api-client` 不依赖 React Query、Ant Design 或路由；
+- Admin 组件留在 `apps/admin`；
+- Web 可以独立选择 UI 框架，但不能直接导入 Admin 应用代码。
+
+数据库、Repository、完整服务端模块和单消费者工具不应移入 package。
 
 ## 运行时基础设施
 

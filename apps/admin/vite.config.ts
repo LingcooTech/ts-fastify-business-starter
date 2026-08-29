@@ -4,6 +4,9 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   base: '/admin/',
   plugins: [react()],
+  build: {
+    chunkSizeWarningLimit: 600,
+  },
   server: {
     proxy: {
       '/api': 'http://localhost:8090',

@@ -1,29 +1,5 @@
-import { useEffect, useState } from 'react';
-
-type ApiState = 'checking' | 'ready' | 'unavailable';
+import { AppRouter } from './app/router';
 
 export function App() {
-  const [apiState, setApiState] = useState<ApiState>('checking');
-
-  useEffect(() => {
-    const controller = new AbortController();
-    void fetch('/health/ready', { signal: controller.signal })
-      .then((response) => setApiState(response.ok ? 'ready' : 'unavailable'))
-      .catch(() => setApiState('unavailable'));
-    return () => controller.abort();
-  }, []);
-
-  return (
-    <main className="shell">
-      <section className="panel">
-        <span className="eyebrow">FASTIFY APPLICATION ADMIN</span>
-        <h1>管理后台底座已就绪</h1>
-        <p>当前仅包含空白运行架构。身份、权限和产品模块按实际业务需要添加。</p>
-        <div className={`status status--${apiState}`}>
-          <span className="status__dot" aria-hidden="true" />
-          API {apiState === 'checking' ? '检查中' : apiState === 'ready' ? '已就绪' : '不可用'}
-        </div>
-      </section>
-    </main>
-  );
+  return <AppRouter />;
 }

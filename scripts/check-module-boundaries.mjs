@@ -10,6 +10,19 @@ const modulesRoot = join(workspaceRoot, 'apps/server/src/modules');
 const shapeExemptions = new Set(['health']);
 const failures = [];
 
+const dependencyRules = [
+  {
+    root: join(workspaceRoot, 'packages/contracts/src'),
+    label: 'contracts',
+    forbidden: [/^react(?:\/|$)/, /^antd(?:\/|$)/, /^fastify(?:\/|$)/, /^drizzle-orm(?:\/|$)/],
+  },
+  {
+    root: join(workspaceRoot, 'packages/api-client/src'),
+    label: 'api-client',
+    forbidden: [/^react(?:\/|$)/, /^antd(?:\/|$)/, /^@tanstack\/react-query(?:\/|$)/],
+  },
+];
+
 function isWithin(parent, target) {
   const path = relative(parent, target);
   return path !== '..' && !path.startsWith(`..${sep}`) && !isAbsolute(path);
@@ -45,6 +58,10 @@ for (const entry of await readdir(modulesRoot, { withFileTypes: true })) {
         `${directory}: missing ${requiredDirectory}/`,
       );
     }
+    await requirePath(
+      join(directory, 'infrastructure/persistence/index.ts'),
+      `${directory}: missing infrastructure/persistence/index.ts`,
+    );
   }
 
   for (const path of await sourceFiles(directory)) {
@@ -71,6 +88,37 @@ for (const entry of await readdir(modulesRoot, { withFileTypes: true })) {
       }
     }
   }
+}
+
+for (const rule of dependencyRules) {
+  try {
+    for (const path of await sourceFiles(rule.root)) {
+      const content = await readFile(path, 'utf8');
+      for (const match of content.matchAll(/from\s+['"]([^'"]+)['"]/g)) {
+        const specifier = match[1];
+        if (rule.forbidden.some((pattern) => pattern.test(specifier))) {
+          failures.push(`${path}: ${rule.label} cannot depend on ${specifier}`);
+        }
+      }
+    }
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
+  }
+}
+
+const webRoot = join(workspaceRoot, 'apps/web/src');
+try {
+  for (const path of await sourceFiles(webRoot)) {
+    const content = await readFile(path, 'utf8');
+    for (const match of content.matchAll(/from\s+['"]([^'"]+)['"]/g)) {
+      const specifier = match[1];
+      if (specifier.includes('apps/admin') || specifier.includes('/admin/src')) {
+        failures.push(`${path}: web cannot import Admin application code`);
+      }
+    }
+  }
+} catch (error) {
+  if (error?.code !== 'ENOENT') throw error;
 }
 
 if (failures.length > 0) {

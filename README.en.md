@@ -1,8 +1,8 @@
-# Lingcoo TS Fastify App Starter
+# Lingcoo TS Fastify Business Starter
 
-A production-ready blank application workspace built with native Fastify, TypeScript, PostgreSQL, Drizzle, React, and pnpm.
+A modular business application workspace built with native Fastify, TypeScript, PostgreSQL, Drizzle, React, Ant Design, and pnpm.
 
-It provides API and Worker entry points, Admin and Web shells, migrations, Docker, CI, quality gates, a module generator, and generated-project acceptance without shipping product or industry modules.
+It provides API and Worker entry points, an independent Ant Design Admin, a separately built Web placeholder, framework-neutral Contracts and API Client packages, migrations, Docker, CI, quality gates, and a module generator. Common modules are implemented one at a time without shipping product or industry domains.
 
 ```bash
 corepack enable
@@ -13,6 +13,6 @@ pnpm db:migrate
 pnpm dev
 ```
 
-Run `pnpm check` for the complete local quality gate. See the Chinese [README](README.md) and the documents under `docs/` for the architecture and delivery conventions.
+Run `pnpm check` for the local quality gate and `pnpm e2e` for desktop/mobile Admin acceptance. See the Chinese [README](README.md) and the documents under `docs/` for the architecture and delivery conventions.
 
 Licensed under Apache-2.0.

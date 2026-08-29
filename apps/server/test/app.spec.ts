@@ -21,6 +21,9 @@ function fakeDatabase(options: { pingError?: Error } = {}) {
   let closed = false;
   const database = {
     db: {} as DatabaseHandle['db'],
+    async transaction<T>(work: Parameters<DatabaseHandle['transaction']>[0]) {
+      return work({} as Parameters<typeof work>[0]) as Promise<T>;
+    },
     async ping() {
       if (options.pingError) throw options.pingError;
     },

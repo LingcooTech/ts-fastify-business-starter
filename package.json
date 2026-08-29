@@ -2,7 +2,7 @@
   "name": "ts-fastify-business-starter",
   "version": "0.1.0",
   "private": true,
-  "description": "A production-ready native Fastify application starter with a pnpm workspace.",
+  "description": "A modular native Fastify business application starter with an independent Ant Design Admin.",
   "license": "Apache-2.0",
   "packageManager": "pnpm@11.21.0",
   "engines": {
@@ -22,10 +22,12 @@
     "format:check": "prettier --check .",
     "check:toolchain": "node scripts/check-toolchain.mjs",
     "check:boundaries": "node scripts/check-module-boundaries.mjs",
-    "check": "corepack pnpm check:toolchain && corepack pnpm check:boundaries && corepack pnpm smoke:module-generator && corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build",
+    "check": "corepack pnpm check:toolchain && corepack pnpm check:boundaries && corepack pnpm smoke:module-generator && corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build && corepack pnpm smoke:admin-static",
     "generate:module": "node scripts/generate-module.mjs",
     "smoke:module-generator": "node scripts/verify-module-generator.mjs",
+    "smoke:admin-static": "node scripts/verify-admin-static.mjs",
     "smoke:docker": "node scripts/verify-docker-smoke.mjs",
+    "e2e": "playwright test",
     "db:generate": "corepack pnpm --filter @ts-fastify-business-starter/server db:generate",
     "db:migrate": "corepack pnpm --filter @ts-fastify-business-starter/server db:migrate",
     "db:studio": "corepack pnpm --filter @ts-fastify-business-starter/server db:studio",
@@ -33,6 +35,7 @@
     "start:worker": "corepack pnpm --filter @ts-fastify-business-starter/server start:worker"
   },
   "devDependencies": {
+    "@playwright/test": "1.62.1",
     "@eslint/js": "10.0.1",
     "@types/node": "24.5.2",
     "eslint": "10.8.1",
