@@ -46,8 +46,8 @@ pnpm db:bootstrap
 ```
 
 当 `BOOTSTRAP_OWNER_EMAIL` 和 `BOOTSTRAP_OWNER_PASSWORD` 同时配置时，命令创建或复用初始账号。
-它可重复执行，且绝不覆盖已存在密码。Identity 阶段尚不定义 Owner 权限；下一阶段 Access Control
-会扩展同一个 Bootstrap 流程，幂等同步权限目录、Owner 角色并完成角色分配。
+它可重复执行，且绝不覆盖已存在密码。Access Control 会在同一个 Bootstrap 流程中先幂等同步权限
+目录和 Owner 系统角色，再为初始账号分配 Owner。未配置账号凭据时仍会同步权限目录和系统角色。
 
 ## 操作令牌投递边界
 

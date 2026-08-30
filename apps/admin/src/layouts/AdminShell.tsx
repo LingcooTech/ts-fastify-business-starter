@@ -26,6 +26,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { foundationNavigation, selectedNavigationKey } from '../app/navigation';
 import { useThemeMode } from '../app/theme-context';
 import { CommandPalette } from '../components/CommandPalette';
+import { usePermissions } from '../features/access/PermissionContext';
 import { useLogout, useSession } from '../features/identity/hooks';
 
 const { Header, Sider, Content } = Layout;
@@ -51,14 +52,20 @@ export function AdminShell() {
   const logout = useLogout();
   const { mode, toggle } = useThemeMode();
   const { token } = theme.useToken();
+  const permissions = usePermissions();
+  const visibleNavigation = useMemo(
+    () =>
+      foundationNavigation.filter((item) => !item.permission || permissions.has(item.permission)),
+    [permissions],
+  );
   const menuItems = useMemo(
     () =>
-      foundationNavigation.map((item) => ({
+      visibleNavigation.map((item) => ({
         key: item.key,
         icon: item.icon,
         label: item.label,
       })),
-    [],
+    [visibleNavigation],
   );
   const selectedKeys = [selectedNavigationKey(location.pathname)].filter(Boolean);
   const menu = (
@@ -68,7 +75,7 @@ export function AdminShell() {
       selectedKeys={selectedKeys}
       items={menuItems}
       onClick={({ key }) => {
-        const item = foundationNavigation.find((entry) => entry.key === key);
+        const item = visibleNavigation.find((entry) => entry.key === key);
         if (item) navigate(item.path);
         setDrawerOpen(false);
       }}
@@ -78,7 +85,7 @@ export function AdminShell() {
 
   return (
     <Layout className="admin-layout" style={{ background: token.colorBgLayout }}>
-      <CommandPalette items={foundationNavigation} />
+      <CommandPalette items={visibleNavigation} />
       {desktop ? (
         <Sider className="admin-sider" width={240} collapsedWidth={80} collapsed={collapsed}>
           <Brand collapsed={collapsed} />

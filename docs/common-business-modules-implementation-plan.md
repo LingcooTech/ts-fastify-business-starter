@@ -12,9 +12,10 @@
 
 - 阶段 0：已于 2026-08-30 完成；
 - 阶段 1 Identity：已于 2026-08-30 完成；
+- 阶段 2 Access Control：已于 2026-08-30 完成；
 - 当前质量门禁：Format、Lint、Typecheck、Unit、Build、Admin Static Smoke、Playwright、Docker Smoke 均通过；
-- 下一阶段：Access Control；
-- Access Control 开始前不并行创建 Audit 或其他模块骨架。
+- 下一阶段：Audit；
+- Audit 开始前不并行创建 Settings 或其他模块骨架。
 
 ## 1. 最终决策
 
@@ -819,6 +820,17 @@ Admin 页面：
 ### 阶段 2：Access Control
 
 一次完整交付 Access Control 后再进入阶段 3。
+
+完成内容：
+
+1. Permission、Role、Role Permission、Account Role Assignment 四张表及 Migration；
+2. 可按来源同步的权限目录、系统 Owner 角色和幂等 Bootstrap 授权；
+3. 真正默认拒绝的 Fastify Route Guard、统一 Session/CSRF 校验和后端权限最终裁决；
+4. 角色 CRUD、权限矩阵、账号目录、账号启停和账号角色分配 API；
+5. 系统角色、Owner 分配、Owner 停用和当前账号自停用保护；
+6. Contracts、无 React API Client、Admin 权限上下文、路由/导航/按钮过滤；
+7. Admin 账号管理、角色列表、角色详情和权限矩阵页面；
+8. PostgreSQL 集成测试、桌面/移动端 Playwright、生产静态托管和 Docker 验收。
 
 ### 阶段 3：Audit
 

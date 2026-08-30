@@ -13,6 +13,7 @@ export function createHealthModule(dependencies: HealthModuleDependencies): Fast
     app.get(
       '/health/live',
       {
+        config: { access: { public: true } },
         schema: {
           tags: ['health'],
           response: {
@@ -56,6 +57,7 @@ export function createHealthModule(dependencies: HealthModuleDependencies): Fast
     app.get(
       '/health/ready',
       {
+        config: { access: { public: true } },
         schema: {
           tags: ['health'],
           response: {

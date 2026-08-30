@@ -1,0 +1,73 @@
+import type { PermissionDefinition } from './model.js';
+
+export const OWNER_ROLE_KEY = 'system.owner';
+
+export const SYSTEM_PERMISSIONS = [
+  {
+    key: 'accounts.read',
+    group: '访问控制',
+    name: '查看账号',
+    description: '查看后台账号及其角色。',
+  },
+  {
+    key: 'accounts.manage',
+    group: '访问控制',
+    name: '管理账号',
+    description: '创建、编辑、启用或停用后台账号。',
+  },
+  { key: 'roles.read', group: '访问控制', name: '查看角色', description: '查看角色和权限目录。' },
+  {
+    key: 'roles.manage',
+    group: '访问控制',
+    name: '管理角色',
+    description: '创建、编辑角色并分配权限。',
+  },
+  { key: 'settings.read', group: '系统设置', name: '查看设置', description: '查看系统设置。' },
+  { key: 'settings.manage', group: '系统设置', name: '管理设置', description: '修改系统设置。' },
+  {
+    key: 'integrations.manage',
+    group: '系统设置',
+    name: '管理集成',
+    description: '配置外部系统集成。',
+  },
+  { key: 'audit.read', group: '运维治理', name: '查看审计', description: '查看审计日志。' },
+  { key: 'jobs.read', group: '运维治理', name: '查看任务', description: '查看异步任务。' },
+  { key: 'jobs.manage', group: '运维治理', name: '管理任务', description: '重试或取消异步任务。' },
+  {
+    key: 'payments.read',
+    group: '业务能力',
+    name: '查看支付',
+    description: '查看支付与退款记录。',
+  },
+  {
+    key: 'payments.manage',
+    group: '业务能力',
+    name: '管理支付',
+    description: '执行支付、退款等受控操作。',
+  },
+  {
+    key: 'notifications.manage',
+    group: '业务能力',
+    name: '管理通知',
+    description: '管理通知模板和发送任务。',
+  },
+  {
+    key: 'storage.read',
+    group: '业务能力',
+    name: '查看文件',
+    description: '查看文件对象和元数据。',
+  },
+  {
+    key: 'storage.manage',
+    group: '业务能力',
+    name: '管理文件',
+    description: '上传、删除和管理文件对象。',
+  },
+] satisfies ReadonlyArray<Omit<PermissionDefinition, 'source'>>;
+
+export const CORE_PERMISSION_DEFINITIONS: PermissionDefinition[] = SYSTEM_PERMISSIONS.map(
+  (item) => ({
+    ...item,
+    source: 'core',
+  }),
+);

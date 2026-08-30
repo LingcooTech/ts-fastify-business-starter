@@ -8,6 +8,5 @@ function readCookie(name: string): string | undefined {
 
 const csrfCookieName = import.meta.env.VITE_AUTH_CSRF_COOKIE_NAME ?? 'app_csrf';
 
-export const identityApi = createIdentityApi(
-  createApiClient({ getCsrfToken: () => readCookie(csrfCookieName) }),
-);
+export const appApiClient = createApiClient({ getCsrfToken: () => readCookie(csrfCookieName) });
+export const identityApi = createIdentityApi(appApiClient);

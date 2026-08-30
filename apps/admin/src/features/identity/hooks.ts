@@ -24,7 +24,10 @@ export function useLogin() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: LoginRequest) => identityApi.login(input),
-    onSuccess: (session) => queryClient.setQueryData(identityQueryKeys.session, session),
+    onSuccess: (session) => {
+      queryClient.removeQueries({ queryKey: ['access'] });
+      queryClient.setQueryData(identityQueryKeys.session, session);
+    },
   });
 }
 
@@ -35,6 +38,7 @@ export function useLogout() {
     onSettled: () => {
       queryClient.setQueryData(identityQueryKeys.session, null);
       queryClient.removeQueries({ queryKey: identityQueryKeys.sessions });
+      queryClient.removeQueries({ queryKey: ['access'] });
     },
   });
 }

@@ -13,6 +13,12 @@ import {
   identityUsers,
 } from '../src/modules/identity/infrastructure/persistence/identity.schema.js';
 import { IdentityRepository } from '../src/modules/identity/infrastructure/persistence/identity.repository.js';
+import {
+  accessPermissions,
+  accessRolePermissions,
+  accessRoles,
+  accessUserRoles,
+} from '../src/modules/access-control/infrastructure/persistence/access-control.schema.js';
 
 const runDatabaseTests = process.env.RUN_DATABASE_TESTS === 'true';
 const suite = runDatabaseTests ? describe : describe.skip;
@@ -47,6 +53,10 @@ suite('identity integration', () => {
       LOG_LEVEL: 'silent',
     });
     database = createDatabase(environment.DATABASE_URL);
+    await database.db.delete(accessUserRoles);
+    await database.db.delete(accessRolePermissions);
+    await database.db.delete(accessRoles);
+    await database.db.delete(accessPermissions);
     await database.db.delete(identityActionTokens);
     await database.db.delete(identitySessions);
     await database.db.delete(identityPasswordCredentials);
@@ -58,6 +68,10 @@ suite('identity integration', () => {
 
   afterAll(async () => {
     if (!database) return;
+    await database.db.delete(accessUserRoles);
+    await database.db.delete(accessRolePermissions);
+    await database.db.delete(accessRoles);
+    await database.db.delete(accessPermissions);
     await database.db.delete(identityActionTokens);
     await database.db.delete(identitySessions);
     await database.db.delete(identityPasswordCredentials);

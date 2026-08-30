@@ -94,14 +94,17 @@ export class IdentityRepository {
     };
   }
 
-  async createUser(input: {
-    email: string;
-    displayName?: string | null;
-    passwordHash: string;
-    emailVerified: boolean;
-  }): Promise<PublicIdentityUser> {
-    return this.database.transaction(async (transaction) => {
-      const [user] = await transaction
+  async createUser(
+    input: {
+      email: string;
+      displayName?: string | null;
+      passwordHash: string;
+      emailVerified: boolean;
+    },
+    executor?: DatabaseExecutor,
+  ): Promise<PublicIdentityUser> {
+    const create = async (writeExecutor: DatabaseExecutor) => {
+      const [user] = await writeExecutor
         .insert(identityUsers)
         .values({
           email: input.email,
@@ -110,12 +113,13 @@ export class IdentityRepository {
         })
         .returning();
       if (!user) throw new Error('Failed to create identity user');
-      await transaction.insert(identityPasswordCredentials).values({
+      await writeExecutor.insert(identityPasswordCredentials).values({
         userId: user.id,
         passwordHash: input.passwordHash,
       });
       return publicUser(user);
-    });
+    };
+    return executor ? create(executor) : this.database.transaction(create);
   }
 
   async updateUser(input: {

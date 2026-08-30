@@ -10,6 +10,7 @@ import type {
 import { emailAddressSchema, passwordSchema } from '@ts-fastify-business-starter/contracts';
 
 import type { AppEnvironment } from '../../../config/environment.js';
+import type { DatabaseExecutor } from '../../../database/database.js';
 import type {
   IdentityUserPage,
   PublicIdentitySession,
@@ -218,24 +219,30 @@ export class IdentityService {
     return user;
   }
 
-  async createUser(input: {
-    email: string;
-    password: string;
-    displayName?: string | null;
-    emailVerified?: boolean;
-  }): Promise<PublicIdentityUser> {
+  async createUser(
+    input: {
+      email: string;
+      password: string;
+      displayName?: string | null;
+      emailVerified?: boolean;
+    },
+    context: { executor?: DatabaseExecutor } = {},
+  ): Promise<PublicIdentityUser> {
     const email = emailAddressSchema.parse(input.email);
     const password = passwordSchema.parse(input.password);
     if (await this.repository.findUserByEmail(email)) {
       throw new ApiError(409, 'IDENTITY_EMAIL_EXISTS', '邮箱已被使用');
     }
     try {
-      return await this.repository.createUser({
-        email,
-        displayName: input.displayName,
-        passwordHash: await hashPassword(password),
-        emailVerified: input.emailVerified ?? false,
-      });
+      return await this.repository.createUser(
+        {
+          email,
+          displayName: input.displayName,
+          passwordHash: await hashPassword(password),
+          emailVerified: input.emailVerified ?? false,
+        },
+        context.executor,
+      );
     } catch (error) {
       if (this.isUniqueViolation(error)) {
         throw new ApiError(409, 'IDENTITY_EMAIL_EXISTS', '邮箱已被使用');

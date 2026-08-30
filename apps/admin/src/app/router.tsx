@@ -4,6 +4,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { AdminShell } from '../layouts/AdminShell';
 import { RequireSession } from '../features/identity/RequireSession';
+import { RequirePermission } from '../features/access/PermissionContext';
 import { ForbiddenPage, NotFoundPage, UnauthorizedPage } from '../routes/error-pages';
 
 const DashboardPage = lazy(() =>
@@ -40,6 +41,12 @@ const ActiveSessionsPage = lazy(() =>
     default: module.ActiveSessionsPage,
   })),
 );
+const UsersPage = lazy(() =>
+  import('../features/access/UsersPage').then((module) => ({ default: module.UsersPage })),
+);
+const RolesPage = lazy(() =>
+  import('../features/access/RolesPage').then((module) => ({ default: module.RolesPage })),
+);
 
 function RouteLoading() {
   return (
@@ -63,6 +70,12 @@ export function AppRouter() {
             <Route path="showcase" element={<ShowcasePage />} />
             <Route path="account/security" element={<AccountSecurityPage />} />
             <Route path="account/sessions" element={<ActiveSessionsPage />} />
+            <Route element={<RequirePermission permissions={['accounts.read']} />}>
+              <Route path="access/users" element={<UsersPage />} />
+            </Route>
+            <Route element={<RequirePermission permissions={['roles.read']} />}>
+              <Route path="access/roles" element={<RolesPage />} />
+            </Route>
             <Route path="forbidden" element={<ForbiddenPage />} />
             <Route path="unauthorized" element={<UnauthorizedPage />} />
             <Route path="home" element={<Navigate to="/" replace />} />

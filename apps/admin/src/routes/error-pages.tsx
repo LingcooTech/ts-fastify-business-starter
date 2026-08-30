@@ -7,7 +7,7 @@ export function UnauthorizedPage() {
       <Result
         status="warning"
         title="需要登录"
-        subTitle="Identity 模块完成后，这里将引导用户重新登录。"
+        subTitle="当前登录状态已失效，请重新登录。"
         extra={
           <Link to="/">
             <Button type="primary">返回概览</Button>

@@ -83,6 +83,7 @@ describe('application', () => {
     app.post(
       '/api/example',
       {
+        config: { access: { public: true } },
         schema: {
           body: {
             type: 'object',
@@ -94,7 +95,7 @@ describe('application', () => {
       },
       async (request) => request.body,
     );
-    app.get('/api/conflict', async () => {
+    app.get('/api/conflict', { config: { access: { public: true } } }, async () => {
       throw new ApiError(409, 'EXAMPLE_CONFLICT', 'Example conflict');
     });
 
@@ -110,6 +111,17 @@ describe('application', () => {
     expect(conflict.json()).toMatchObject({
       error: { code: 'EXAMPLE_CONFLICT', message: 'Example conflict' },
     });
+    await app.close();
+  });
+
+  it('denies an API route that does not declare an access policy', async () => {
+    const { database } = fakeDatabase();
+    const app = await buildApp({ environment, database });
+    app.get('/api/unclassified', async () => ({ exposed: true }));
+
+    const response = await app.inject({ method: 'GET', url: '/api/unclassified' });
+    expect(response.statusCode).toBe(403);
+    expect(response.json()).toMatchObject({ error: { code: 'ACCESS_POLICY_REQUIRED' } });
     await app.close();
   });
 });

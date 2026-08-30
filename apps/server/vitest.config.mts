@@ -4,6 +4,7 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
+    fileParallelism: false,
     include: ['test/**/*.spec.ts'],
     env: {
       NODE_ENV: 'test',

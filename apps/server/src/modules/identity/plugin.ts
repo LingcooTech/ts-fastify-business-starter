@@ -14,17 +14,20 @@ export interface IdentityModuleDependencies {
   environment: AppEnvironment;
   database: DatabaseHandle;
   actionDelivery?: IdentityActionDelivery;
+  service?: IdentityService;
+}
+
+export function createIdentityService(dependencies: IdentityModuleDependencies): IdentityService {
+  return new IdentityService(
+    new IdentityRepository(dependencies.database),
+    dependencies.environment,
+    dependencies.actionDelivery ?? new DisabledIdentityActionDelivery(),
+  );
 }
 
 export function createIdentityModule(dependencies: IdentityModuleDependencies): FastifyPluginAsync {
   return async (app) => {
-    app.decorateRequest('identityPrincipal', null);
-    const repository = new IdentityRepository(dependencies.database);
-    const service = new IdentityService(
-      repository,
-      dependencies.environment,
-      dependencies.actionDelivery ?? new DisabledIdentityActionDelivery(),
-    );
+    const service = dependencies.service ?? createIdentityService(dependencies);
     await registerIdentityRoutes(app, { environment: dependencies.environment, service });
   };
 }

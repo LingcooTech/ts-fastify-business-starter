@@ -7,7 +7,7 @@ import {
   loginRequestSchema,
   requestPasswordResetSchema,
 } from '@ts-fastify-business-starter/contracts';
-import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 
 import type { AppEnvironment } from '../../../config/environment.js';
@@ -65,24 +65,6 @@ export async function registerIdentityRoutes(
     reply.clearCookie(environment.AUTH_COOKIE_NAME, cookieOptions(true));
     reply.clearCookie(environment.AUTH_CSRF_COOKIE_NAME, cookieOptions(false));
   };
-  const requireIdentity = async (request: FastifyRequest) => {
-    const sessionToken = request.cookies[environment.AUTH_COOKIE_NAME];
-    const csrfToken = request.cookies[environment.AUTH_CSRF_COOKIE_NAME];
-    if (!sessionToken || !csrfToken) {
-      throw new ApiError(401, 'AUTHENTICATION_REQUIRED', '请先登录');
-    }
-    const session = await service.resolveSession(sessionToken, csrfToken);
-    if (!session) throw new ApiError(401, 'INVALID_SESSION', '登录状态已失效');
-    request.identityPrincipal = { ...session, csrfToken };
-  };
-  const requireCsrf = async (request: FastifyRequest) => {
-    await requireIdentity(request);
-    const principal = request.identityPrincipal;
-    const csrfHeader = firstHeader(request.headers['x-csrf-token']);
-    if (!principal || !csrfHeader || !service.csrfMatches(csrfHeader, principal.csrfToken)) {
-      throw new ApiError(403, 'INVALID_CSRF_TOKEN', 'CSRF 令牌无效');
-    }
-  };
   const loginRateLimit = app.rateLimit({
     max: 10,
     timeWindow: '1 minute',
@@ -104,23 +86,27 @@ export async function registerIdentityRoutes(
     timeWindow: '1 minute',
   });
 
-  app.post('/api/auth/login', { preHandler: loginRateLimit }, async (request, reply) => {
-    const input = parse(loginRequestSchema, request.body);
-    const userAgent = firstHeader(request.headers['user-agent'])?.slice(0, 512) ?? null;
-    const result = await service.login(input, {
-      userAgent,
-      ipAddress: request.ip?.slice(0, 64) ?? null,
-    });
-    reply.setCookie(environment.AUTH_COOKIE_NAME, result.sessionToken, cookieOptions(true));
-    reply.setCookie(environment.AUTH_CSRF_COOKIE_NAME, result.csrfToken, cookieOptions(false));
-    return {
-      user: serializeUser(result.user),
-      session: { id: result.sessionId, expiresAt: result.expiresAt.toISOString() },
-      csrfToken: result.csrfToken,
-    };
-  });
+  app.post(
+    '/api/auth/login',
+    { config: { access: { public: true } }, preHandler: loginRateLimit },
+    async (request, reply) => {
+      const input = parse(loginRequestSchema, request.body);
+      const userAgent = firstHeader(request.headers['user-agent'])?.slice(0, 512) ?? null;
+      const result = await service.login(input, {
+        userAgent,
+        ipAddress: request.ip?.slice(0, 64) ?? null,
+      });
+      reply.setCookie(environment.AUTH_COOKIE_NAME, result.sessionToken, cookieOptions(true));
+      reply.setCookie(environment.AUTH_CSRF_COOKIE_NAME, result.csrfToken, cookieOptions(false));
+      return {
+        user: serializeUser(result.user),
+        session: { id: result.sessionId, expiresAt: result.expiresAt.toISOString() },
+        csrfToken: result.csrfToken,
+      };
+    },
+  );
 
-  app.get('/api/auth/me', { preHandler: requireIdentity }, async (request) => {
+  app.get('/api/auth/me', { config: { access: { permissions: [] } } }, async (request) => {
     const principal = request.identityPrincipal!;
     return {
       user: serializeUser(principal.user),
@@ -129,22 +115,30 @@ export async function registerIdentityRoutes(
     };
   });
 
-  app.post('/api/auth/logout', { preHandler: requireCsrf }, async (request, reply) => {
-    await service.logout(request.identityPrincipal!.sessionId);
-    clearCookies(reply);
-    return { accepted: true } as const;
-  });
+  app.post(
+    '/api/auth/logout',
+    { config: { access: { permissions: [] } } },
+    async (request, reply) => {
+      await service.logout(request.identityPrincipal!.sessionId);
+      clearCookies(reply);
+      return { accepted: true } as const;
+    },
+  );
 
-  app.post('/api/auth/password/change', { preHandler: requireCsrf }, async (request, reply) => {
-    const input = parse(changePasswordRequestSchema, request.body);
-    await service.changePassword(request.identityPrincipal!.user.id, input);
-    clearCookies(reply);
-    return { accepted: true } as const;
-  });
+  app.post(
+    '/api/auth/password/change',
+    { config: { access: { permissions: [] } } },
+    async (request, reply) => {
+      const input = parse(changePasswordRequestSchema, request.body);
+      await service.changePassword(request.identityPrincipal!.user.id, input);
+      clearCookies(reply);
+      return { accepted: true } as const;
+    },
+  );
 
   app.post(
     '/api/auth/password-reset/request',
-    { preHandler: passwordResetRequestRateLimit },
+    { config: { access: { public: true } }, preHandler: passwordResetRequestRateLimit },
     async (request) => {
       const input = parse(requestPasswordResetSchema, request.body);
       return service.requestPasswordReset(input.email);
@@ -153,7 +147,7 @@ export async function registerIdentityRoutes(
 
   app.post(
     '/api/auth/password-reset/confirm',
-    { preHandler: passwordResetConfirmRateLimit },
+    { config: { access: { public: true } }, preHandler: passwordResetConfirmRateLimit },
     async (request) => {
       await service.confirmPasswordReset(parse(confirmPasswordResetSchema, request.body));
       return { accepted: true } as const;
@@ -163,14 +157,15 @@ export async function registerIdentityRoutes(
   app.post(
     '/api/auth/email-verification/request',
     {
-      preHandler: [emailVerificationRequestRateLimit, requireCsrf],
+      config: { access: { permissions: [] } },
+      preHandler: emailVerificationRequestRateLimit,
     },
     async (request) => service.requestEmailVerification(request.identityPrincipal!.user.id),
   );
 
   app.post(
     '/api/auth/email-verification/confirm',
-    { preHandler: emailVerificationConfirmRateLimit },
+    { config: { access: { public: true } }, preHandler: emailVerificationConfirmRateLimit },
     async (request) => {
       const input = parse(confirmEmailVerificationSchema, request.body);
       await service.confirmEmailVerification(input.token);
@@ -178,7 +173,7 @@ export async function registerIdentityRoutes(
     },
   );
 
-  app.get('/api/auth/sessions', { preHandler: requireIdentity }, async (request) => ({
+  app.get('/api/auth/sessions', { config: { access: { permissions: [] } } }, async (request) => ({
     items: (
       await service.listSessions(
         request.identityPrincipal!.user.id,
@@ -187,10 +182,14 @@ export async function registerIdentityRoutes(
     ).map(serializeSession),
   }));
 
-  app.post('/api/auth/sessions/:sessionId/revoke', { preHandler: requireCsrf }, async (request) => {
-    const { sessionId } = parse(z.object({ sessionId: z.uuid() }), request.params);
-    const principal = request.identityPrincipal!;
-    await service.revokeSession(principal.user.id, sessionId, principal.sessionId);
-    return { accepted: true } as const;
-  });
+  app.post(
+    '/api/auth/sessions/:sessionId/revoke',
+    { config: { access: { permissions: [] } } },
+    async (request) => {
+      const { sessionId } = parse(z.object({ sessionId: z.uuid() }), request.params);
+      const principal = request.identityPrincipal!;
+      await service.revokeSession(principal.user.id, sessionId, principal.sessionId);
+      return { accepted: true } as const;
+    },
+  );
 }
