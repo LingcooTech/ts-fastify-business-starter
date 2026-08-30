@@ -11,6 +11,7 @@ import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 
 import type { AppEnvironment } from '../../../config/environment.js';
+import { auditContextFromRequest } from '../../audit/public.js';
 import type { IdentityService } from '../application/identity.service.js';
 import type { PublicIdentitySession, PublicIdentityUser } from '../domain/model.js';
 import './request-context.js';
@@ -43,10 +44,6 @@ function serializeSession(session: PublicIdentitySession) {
     lastSeenAt: session.lastSeenAt.toISOString(),
     expiresAt: session.expiresAt.toISOString(),
   };
-}
-
-function firstHeader(value: string | string[] | undefined): string | undefined {
-  return Array.isArray(value) ? value[0] : value;
 }
 
 export async function registerIdentityRoutes(
@@ -91,11 +88,10 @@ export async function registerIdentityRoutes(
     { config: { access: { public: true } }, preHandler: loginRateLimit },
     async (request, reply) => {
       const input = parse(loginRequestSchema, request.body);
-      const userAgent = firstHeader(request.headers['user-agent'])?.slice(0, 512) ?? null;
-      const result = await service.login(input, {
-        userAgent,
-        ipAddress: request.ip?.slice(0, 64) ?? null,
-      });
+      const result = await service.login(
+        input,
+        auditContextFromRequest(request, { type: 'user', label: input.email }),
+      );
       reply.setCookie(environment.AUTH_COOKIE_NAME, result.sessionToken, cookieOptions(true));
       reply.setCookie(environment.AUTH_CSRF_COOKIE_NAME, result.csrfToken, cookieOptions(false));
       return {
@@ -119,7 +115,16 @@ export async function registerIdentityRoutes(
     '/api/auth/logout',
     { config: { access: { permissions: [] } } },
     async (request, reply) => {
-      await service.logout(request.identityPrincipal!.sessionId);
+      const principal = request.identityPrincipal!;
+      await service.logout(
+        principal.user.id,
+        principal.sessionId,
+        auditContextFromRequest(request, {
+          type: 'user',
+          id: principal.user.id,
+          label: principal.user.displayName ?? principal.user.email,
+        }),
+      );
       clearCookies(reply);
       return { accepted: true } as const;
     },
@@ -130,7 +135,16 @@ export async function registerIdentityRoutes(
     { config: { access: { permissions: [] } } },
     async (request, reply) => {
       const input = parse(changePasswordRequestSchema, request.body);
-      await service.changePassword(request.identityPrincipal!.user.id, input);
+      const principal = request.identityPrincipal!;
+      await service.changePassword(
+        principal.user.id,
+        input,
+        auditContextFromRequest(request, {
+          type: 'user',
+          id: principal.user.id,
+          label: principal.user.displayName ?? principal.user.email,
+        }),
+      );
       clearCookies(reply);
       return { accepted: true } as const;
     },
@@ -141,7 +155,10 @@ export async function registerIdentityRoutes(
     { config: { access: { public: true } }, preHandler: passwordResetRequestRateLimit },
     async (request) => {
       const input = parse(requestPasswordResetSchema, request.body);
-      return service.requestPasswordReset(input.email);
+      return service.requestPasswordReset(
+        input.email,
+        auditContextFromRequest(request, { type: 'user', label: input.email }),
+      );
     },
   );
 
@@ -149,7 +166,10 @@ export async function registerIdentityRoutes(
     '/api/auth/password-reset/confirm',
     { config: { access: { public: true } }, preHandler: passwordResetConfirmRateLimit },
     async (request) => {
-      await service.confirmPasswordReset(parse(confirmPasswordResetSchema, request.body));
+      await service.confirmPasswordReset(
+        parse(confirmPasswordResetSchema, request.body),
+        auditContextFromRequest(request, { type: 'user' }),
+      );
       return { accepted: true } as const;
     },
   );
@@ -160,7 +180,17 @@ export async function registerIdentityRoutes(
       config: { access: { permissions: [] } },
       preHandler: emailVerificationRequestRateLimit,
     },
-    async (request) => service.requestEmailVerification(request.identityPrincipal!.user.id),
+    async (request) => {
+      const principal = request.identityPrincipal!;
+      return service.requestEmailVerification(
+        principal.user.id,
+        auditContextFromRequest(request, {
+          type: 'user',
+          id: principal.user.id,
+          label: principal.user.displayName ?? principal.user.email,
+        }),
+      );
+    },
   );
 
   app.post(
@@ -168,7 +198,10 @@ export async function registerIdentityRoutes(
     { config: { access: { public: true } }, preHandler: emailVerificationConfirmRateLimit },
     async (request) => {
       const input = parse(confirmEmailVerificationSchema, request.body);
-      await service.confirmEmailVerification(input.token);
+      await service.confirmEmailVerification(
+        input.token,
+        auditContextFromRequest(request, { type: 'user' }),
+      );
       return { accepted: true } as const;
     },
   );
@@ -188,7 +221,16 @@ export async function registerIdentityRoutes(
     async (request) => {
       const { sessionId } = parse(z.object({ sessionId: z.uuid() }), request.params);
       const principal = request.identityPrincipal!;
-      await service.revokeSession(principal.user.id, sessionId, principal.sessionId);
+      await service.revokeSession(
+        principal.user.id,
+        sessionId,
+        principal.sessionId,
+        auditContextFromRequest(request, {
+          type: 'user',
+          id: principal.user.id,
+          label: principal.user.displayName ?? principal.user.email,
+        }),
+      );
       return { accepted: true } as const;
     },
   );

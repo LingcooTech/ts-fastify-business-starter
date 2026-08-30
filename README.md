@@ -92,6 +92,7 @@ pnpm e2e
 - [质量标准](docs/quality-bar.md)
 - [Identity](docs/identity.md)
 - [Access Control](docs/access-control.md)
+- [Audit](docs/audit.md)
 
 ## 实施边界
 

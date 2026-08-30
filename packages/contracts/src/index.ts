@@ -6,3 +6,4 @@ export * from './common/time.js';
 export * from './health.js';
 export * from './identity.js';
 export * from './access-control.js';
+export * from './audit.js';

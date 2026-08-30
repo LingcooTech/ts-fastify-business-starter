@@ -47,6 +47,9 @@ const UsersPage = lazy(() =>
 const RolesPage = lazy(() =>
   import('../features/access/RolesPage').then((module) => ({ default: module.RolesPage })),
 );
+const AuditPage = lazy(() =>
+  import('../features/audit/AuditPage').then((module) => ({ default: module.AuditPage })),
+);
 
 function RouteLoading() {
   return (
@@ -75,6 +78,9 @@ export function AppRouter() {
             </Route>
             <Route element={<RequirePermission permissions={['roles.read']} />}>
               <Route path="access/roles" element={<RolesPage />} />
+            </Route>
+            <Route element={<RequirePermission permissions={['audit.read']} />}>
+              <Route path="audit" element={<AuditPage />} />
             </Route>
             <Route path="forbidden" element={<ForbiddenPage />} />
             <Route path="unauthorized" element={<UnauthorizedPage />} />

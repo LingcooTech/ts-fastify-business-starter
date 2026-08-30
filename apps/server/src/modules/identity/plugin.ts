@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import type { AppEnvironment } from '../../config/environment.js';
 import type { DatabaseHandle } from '../../database/database.js';
+import { NOOP_AUDIT_WRITER, type AuditWriter } from '../audit/public.js';
 import {
   DisabledIdentityActionDelivery,
   type IdentityActionDelivery,
@@ -14,6 +15,7 @@ export interface IdentityModuleDependencies {
   environment: AppEnvironment;
   database: DatabaseHandle;
   actionDelivery?: IdentityActionDelivery;
+  audit?: AuditWriter;
   service?: IdentityService;
 }
 
@@ -22,6 +24,7 @@ export function createIdentityService(dependencies: IdentityModuleDependencies):
     new IdentityRepository(dependencies.database),
     dependencies.environment,
     dependencies.actionDelivery ?? new DisabledIdentityActionDelivery(),
+    dependencies.audit ?? NOOP_AUDIT_WRITER,
   );
 }
 

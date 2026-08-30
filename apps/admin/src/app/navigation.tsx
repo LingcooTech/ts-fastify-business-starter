@@ -5,6 +5,7 @@ import {
   LaptopOutlined,
   TeamOutlined,
   UserOutlined,
+  FileSearchOutlined,
 } from '@ant-design/icons';
 import type { PermissionKey } from '@ts-fastify-business-starter/contracts';
 import type { ReactNode } from 'react';
@@ -33,6 +34,13 @@ export const foundationNavigation: AdminNavigationItem[] = [
     path: '/access/roles',
     icon: <TeamOutlined />,
     permission: 'roles.read',
+  },
+  {
+    key: 'audit',
+    label: '审计日志',
+    path: '/audit',
+    icon: <FileSearchOutlined />,
+    permission: 'audit.read',
   },
   {
     key: 'account-security',

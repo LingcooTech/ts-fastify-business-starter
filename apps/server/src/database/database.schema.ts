@@ -1,3 +1,4 @@
 // This file is the Drizzle composition point. Tables remain owned by their module.
 export * from '../modules/identity/infrastructure/persistence/identity.schema.js';
 export * from '../modules/access-control/infrastructure/persistence/access-control.schema.js';
+export * from '../modules/audit/infrastructure/persistence/audit.schema.js';

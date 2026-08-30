@@ -8,6 +8,7 @@ import type {
 } from '@ts-fastify-business-starter/contracts';
 
 import type { IdentityService, PublicIdentityUser } from '../../identity/public.js';
+import type { AuditContext, AuditWriter } from '../../audit/public.js';
 import type { DatabaseHandle } from '../../../database/database.js';
 import type {
   AccessRole,
@@ -34,14 +35,27 @@ export class AccessControlService {
     private readonly repository: AccessControlRepository,
     private readonly identity: IdentityService,
     private readonly database: DatabaseHandle,
+    private readonly audit: AuditWriter,
   ) {}
 
   synchronizeSystemAccess(): Promise<void> {
     return this.repository.synchronizeCatalog('core', CORE_PERMISSION_DEFINITIONS);
   }
 
-  assignOwner(userId: string): Promise<void> {
-    return this.repository.assignOwner(userId);
+  async assignOwner(userId: string): Promise<void> {
+    await this.database.transaction(async (transaction) => {
+      if (!(await this.repository.assignOwner(userId, transaction))) return;
+      await this.audit.record(
+        {
+          actorType: 'system',
+          category: 'system',
+          action: 'access.owner.assigned',
+          resourceType: 'identity.user',
+          resourceId: userId,
+        },
+        transaction,
+      );
+    });
   }
 
   permissionsForUser(userId: string): Promise<PermissionKey[]> {
@@ -62,42 +76,109 @@ export class AccessControlService {
     return role;
   }
 
-  async createRole(input: CreateRoleRequest): Promise<AccessRole> {
+  async createRole(input: CreateRoleRequest, context: AuditContext): Promise<AccessRole> {
     if (input.key.startsWith('system.')) {
       throw new ApiError(400, 'ACCESS_RESERVED_ROLE_KEY', 'system.* 为系统角色保留命名空间');
     }
     try {
-      return await this.repository.createRole(input);
+      return await this.database.transaction(async (transaction) => {
+        const role = await this.repository.createRole(input, transaction);
+        await this.audit.record(
+          {
+            ...context,
+            category: 'access',
+            action: 'access.role.created',
+            resourceType: 'access.role',
+            resourceId: role.id,
+            changes: [
+              { field: 'key', before: null, after: role.key },
+              { field: 'name', before: null, after: role.name },
+              { field: 'permissions', before: null, after: role.permissions },
+            ],
+          },
+          transaction,
+        );
+        return role;
+      });
     } catch (error) {
       this.translateRepositoryError(error);
       throw error;
     }
   }
 
-  async updateRole(roleId: string, input: UpdateRoleRequest): Promise<AccessRole> {
-    await this.assertMutableRole(roleId);
-    const role = await this.repository.updateRole(roleId, input);
-    if (!role) throw new ApiError(404, 'ACCESS_ROLE_NOT_FOUND', '角色不存在');
-    return role;
-  }
-
-  async replaceRolePermissions(roleId: string, permissions: PermissionKey[]): Promise<AccessRole> {
-    await this.assertMutableRole(roleId);
-    try {
-      const role = await this.repository.replaceRolePermissions(roleId, permissions);
+  async updateRole(
+    roleId: string,
+    input: UpdateRoleRequest,
+    context: AuditContext,
+  ): Promise<AccessRole> {
+    const before = await this.assertMutableRole(roleId);
+    return this.database.transaction(async (transaction) => {
+      const role = await this.repository.updateRole(roleId, input, transaction);
       if (!role) throw new ApiError(404, 'ACCESS_ROLE_NOT_FOUND', '角色不存在');
+      await this.audit.record(
+        {
+          ...context,
+          category: 'access',
+          action: 'access.role.updated',
+          resourceType: 'access.role',
+          resourceId: roleId,
+          changes: this.changes(before, role, ['name', 'description']),
+        },
+        transaction,
+      );
       return role;
+    });
+  }
+
+  async replaceRolePermissions(
+    roleId: string,
+    permissions: PermissionKey[],
+    context: AuditContext,
+  ): Promise<AccessRole> {
+    const before = await this.assertMutableRole(roleId);
+    try {
+      return await this.database.transaction(async (transaction) => {
+        const role = await this.repository.replaceRolePermissions(roleId, permissions, transaction);
+        if (!role) throw new ApiError(404, 'ACCESS_ROLE_NOT_FOUND', '角色不存在');
+        await this.audit.record(
+          {
+            ...context,
+            category: 'access',
+            action: 'access.role.permissions-replaced',
+            resourceType: 'access.role',
+            resourceId: roleId,
+            changes: [
+              { field: 'permissions', before: before.permissions, after: role.permissions },
+            ],
+          },
+          transaction,
+        );
+        return role;
+      });
     } catch (error) {
       this.translateRepositoryError(error);
       throw error;
     }
   }
 
-  async deleteRole(roleId: string): Promise<void> {
-    await this.assertMutableRole(roleId);
-    if (!(await this.repository.deleteRole(roleId))) {
-      throw new ApiError(404, 'ACCESS_ROLE_NOT_FOUND', '角色不存在');
-    }
+  async deleteRole(roleId: string, context: AuditContext): Promise<void> {
+    const before = await this.assertMutableRole(roleId);
+    await this.database.transaction(async (transaction) => {
+      if (!(await this.repository.deleteRole(roleId, transaction))) {
+        throw new ApiError(404, 'ACCESS_ROLE_NOT_FOUND', '角色不存在');
+      }
+      await this.audit.record(
+        {
+          ...context,
+          category: 'access',
+          action: 'access.role.deleted',
+          resourceType: 'access.role',
+          resourceId: roleId,
+          changes: [{ field: 'role', before: this.roleAuditView(before), after: null }],
+        },
+        transaction,
+      );
+    });
   }
 
   async listUsers(input: {
@@ -120,13 +201,29 @@ export class AccessControlService {
     return { ...user, roles: roles.get(userId) ?? [] };
   }
 
-  async createUser(input: CreateAccessUserRequest): Promise<AccessUser> {
+  async createUser(input: CreateAccessUserRequest, context: AuditContext): Promise<AccessUser> {
     const userId = await this.database.transaction(async (transaction) => {
       if (!(await this.repository.validateRoleIds(input.roleIds, transaction))) {
         throw new ApiError(400, 'ACCESS_UNKNOWN_ROLE', '包含不存在的角色');
       }
       const user = await this.identity.createUser(input, { executor: transaction });
       await this.repository.replaceUserRoles(user.id, input.roleIds, transaction);
+      await this.audit.record(
+        {
+          ...context,
+          category: 'account',
+          action: 'access.account.created',
+          resourceType: 'identity.user',
+          resourceId: user.id,
+          changes: [
+            { field: 'email', before: null, after: user.email },
+            { field: 'displayName', before: null, after: user.displayName },
+            { field: 'status', before: null, after: user.status },
+            { field: 'roleIds', before: null, after: input.roleIds },
+          ],
+        },
+        transaction,
+      );
       return user.id;
     });
     return this.getUser(userId);
@@ -143,7 +240,9 @@ export class AccessControlService {
     actorUserId: string,
     userId: string,
     input: UpdateAccessUserRequest,
+    context: AuditContext,
   ): Promise<AccessUser> {
+    const before = await this.getUser(userId);
     if (input.status === 'disabled') {
       if (actorUserId === userId) {
         throw new ApiError(400, 'ACCESS_SELF_DISABLE', '不能停用当前登录账号');
@@ -152,11 +251,28 @@ export class AccessControlService {
         throw new ApiError(400, 'ACCESS_OWNER_PROTECTED', 'Owner 账号不能被停用');
       }
     }
-    await this.identity.updateUser({ userId, ...input });
+    await this.database.transaction(async (transaction) => {
+      const user = await this.identity.updateUser({ userId, ...input }, { executor: transaction });
+      await this.audit.record(
+        {
+          ...context,
+          category: 'account',
+          action: 'access.account.updated',
+          resourceType: 'identity.user',
+          resourceId: userId,
+          changes: this.changes(before, user, ['displayName', 'status']),
+        },
+        transaction,
+      );
+    });
     return this.getUser(userId);
   }
 
-  async replaceUserRoles(userId: string, roleIds: string[]): Promise<AccessUser> {
+  async replaceUserRoles(
+    userId: string,
+    roleIds: string[],
+    context: AuditContext,
+  ): Promise<AccessUser> {
     await this.identity.getUser(userId);
     const current = await this.getUser(userId);
     if (current.roles.some((role) => role.key === OWNER_ROLE_KEY)) {
@@ -167,7 +283,26 @@ export class AccessControlService {
       }
     }
     try {
-      await this.repository.replaceUserRoles(userId, roleIds);
+      await this.database.transaction(async (transaction) => {
+        await this.repository.replaceUserRoles(userId, roleIds, transaction);
+        await this.audit.record(
+          {
+            ...context,
+            category: 'access',
+            action: 'access.account.roles-replaced',
+            resourceType: 'identity.user',
+            resourceId: userId,
+            changes: [
+              {
+                field: 'roleIds',
+                before: current.roles.map((role) => role.id).sort(),
+                after: [...new Set(roleIds)].sort(),
+              },
+            ],
+          },
+          transaction,
+        );
+      });
       return this.getUser(userId);
     } catch (error) {
       this.translateRepositoryError(error);
@@ -175,10 +310,34 @@ export class AccessControlService {
     }
   }
 
-  private async assertMutableRole(roleId: string): Promise<void> {
+  private async assertMutableRole(roleId: string): Promise<AccessRole> {
     const role = await this.getRole(roleId);
     if (role.system)
       throw new ApiError(400, 'ACCESS_SYSTEM_ROLE_PROTECTED', '系统角色不能修改或删除');
+    return role;
+  }
+
+  private changes<T extends object>(
+    before: T,
+    after: T,
+    fields: Array<keyof T>,
+  ): Array<{ field: string; before: unknown; after: unknown }> {
+    return fields
+      .filter((field) => JSON.stringify(before[field]) !== JSON.stringify(after[field]))
+      .map((field) => ({
+        field: String(field),
+        before: before[field] ?? null,
+        after: after[field] ?? null,
+      }));
+  }
+
+  private roleAuditView(role: AccessRole) {
+    return {
+      key: role.key,
+      name: role.name,
+      description: role.description,
+      permissions: role.permissions,
+    };
   }
 
   private translateRepositoryError(error: unknown): void {

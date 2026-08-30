@@ -12,3 +12,6 @@
 - Added the Access Control module with permission registry, roles, account role assignment, strict
   default-deny guards, protected Owner Bootstrap, atomic account provisioning, and Admin role/account
   management pages.
+- Added the append-only Audit module with database-enforced immutability, defensive redaction,
+  transaction-aware Identity/Access events, query contracts/API client, and responsive Admin
+  filtering and event details.

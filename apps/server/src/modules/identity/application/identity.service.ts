@@ -11,6 +11,7 @@ import { emailAddressSchema, passwordSchema } from '@ts-fastify-business-starter
 
 import type { AppEnvironment } from '../../../config/environment.js';
 import type { DatabaseExecutor } from '../../../database/database.js';
+import { NOOP_AUDIT_WRITER, type AuditContext, type AuditWriter } from '../../audit/public.js';
 import type {
   IdentityUserPage,
   PublicIdentitySession,
@@ -51,34 +52,62 @@ export class IdentityService {
     private readonly repository: IdentityRepository,
     private readonly environment: AppEnvironment,
     private readonly actionDelivery: IdentityActionDelivery,
+    private readonly audit: AuditWriter = NOOP_AUDIT_WRITER,
   ) {}
 
-  async login(
-    input: LoginRequest,
-    context: { userAgent: string | null; ipAddress: string | null },
-  ): Promise<IdentityLoginResult> {
+  async login(input: LoginRequest, context: Partial<AuditContext>): Promise<IdentityLoginResult> {
     const credential = await this.repository.findCredentialByEmail(input.email);
     const passwordHash = credential?.passwordHash ?? (await this.dummyPasswordHash);
     const valid = await verifyPassword(input.password, passwordHash);
-    if (!credential || !valid || credential.user.status !== 'active') throw invalidCredentials();
-
-    if (needsPasswordRehash(credential.passwordHash)) {
-      await this.repository.updatePasswordHash(
-        credential.user.id,
-        await hashPassword(input.password),
-      );
+    if (!credential || !valid || credential.user.status !== 'active') {
+      await this.audit.record({
+        ...this.userAuditContext(context, null, input.email),
+        category: 'security',
+        action: 'identity.login.failed',
+        resourceType: 'identity.session',
+        outcome: 'failure',
+        metadata: { reason: 'invalid_credentials' },
+      });
+      throw invalidCredentials();
     }
 
     const sessionToken = token();
     const csrfToken = token();
     const expiresAt = new Date(Date.now() + this.environment.AUTH_SESSION_TTL_SECONDS * 1000);
-    const session = await this.repository.createSession({
-      userId: credential.user.id,
-      tokenDigest: digest(sessionToken),
-      csrfDigest: digest(csrfToken),
-      expiresAt,
-      userAgent: context.userAgent,
-      ipAddress: context.ipAddress,
+    const session = await this.repository.transaction(async (transaction) => {
+      if (needsPasswordRehash(credential.passwordHash)) {
+        await this.repository.updatePasswordHash(
+          credential.user.id,
+          await hashPassword(input.password),
+          transaction,
+        );
+      }
+      const created = await this.repository.createSession(
+        {
+          userId: credential.user.id,
+          tokenDigest: digest(sessionToken),
+          csrfDigest: digest(csrfToken),
+          expiresAt,
+          userAgent: context.userAgent ?? null,
+          ipAddress: context.ipAddress ?? null,
+        },
+        transaction,
+      );
+      await this.audit.record(
+        {
+          ...this.userAuditContext(
+            context,
+            credential.user.id,
+            credential.user.displayName ?? credential.user.email,
+          ),
+          category: 'security',
+          action: 'identity.login.succeeded',
+          resourceType: 'identity.session',
+          resourceId: created.id,
+        },
+        transaction,
+      );
+      return created;
     });
     return {
       sessionId: session.id,
@@ -107,24 +136,64 @@ export class IdentityService {
     );
   }
 
-  async logout(sessionId: string): Promise<void> {
-    await this.repository.revokeSession(sessionId);
+  async logout(userId: string, sessionId: string, context?: Partial<AuditContext>): Promise<void> {
+    await this.repository.transaction(async (transaction) => {
+      await this.repository.revokeSession(sessionId, transaction);
+      await this.audit.record(
+        {
+          ...this.userAuditContext(context, userId),
+          category: 'security',
+          action: 'identity.logout',
+          resourceType: 'identity.session',
+          resourceId: sessionId,
+        },
+        transaction,
+      );
+    });
   }
 
   listSessions(userId: string, currentSessionId: string): Promise<PublicIdentitySession[]> {
     return this.repository.listActiveSessions(userId, currentSessionId);
   }
 
-  async revokeSession(userId: string, sessionId: string, currentSessionId: string): Promise<void> {
+  async revokeSession(
+    userId: string,
+    sessionId: string,
+    currentSessionId: string,
+    context?: Partial<AuditContext>,
+  ): Promise<void> {
     if (sessionId === currentSessionId) {
       throw new ApiError(400, 'CURRENT_SESSION_REVOKE', '请使用退出登录撤销当前会话');
     }
-    if (!(await this.repository.revokeOwnedSession(userId, sessionId, currentSessionId))) {
-      throw new ApiError(404, 'SESSION_NOT_FOUND', '会话不存在或已失效');
-    }
+    await this.repository.transaction(async (transaction) => {
+      if (
+        !(await this.repository.revokeOwnedSession(
+          userId,
+          sessionId,
+          currentSessionId,
+          transaction,
+        ))
+      ) {
+        throw new ApiError(404, 'SESSION_NOT_FOUND', '会话不存在或已失效');
+      }
+      await this.audit.record(
+        {
+          ...this.userAuditContext(context, userId),
+          category: 'security',
+          action: 'identity.session.revoked',
+          resourceType: 'identity.session',
+          resourceId: sessionId,
+        },
+        transaction,
+      );
+    });
   }
 
-  async changePassword(userId: string, input: ChangePasswordRequest): Promise<void> {
+  async changePassword(
+    userId: string,
+    input: ChangePasswordRequest,
+    context?: Partial<AuditContext>,
+  ): Promise<void> {
     const credential = await this.repository.findCredentialByUserId(userId);
     if (!credential || !(await verifyPassword(input.currentPassword, credential.passwordHash))) {
       throw invalidCredentials();
@@ -132,22 +201,60 @@ export class IdentityService {
     if (await verifyPassword(input.newPassword, credential.passwordHash)) {
       throw new ApiError(400, 'PASSWORD_REUSE', '新密码不能与当前密码相同');
     }
-    await this.repository.changePasswordAndRevokeSessions(
-      userId,
-      await hashPassword(input.newPassword),
-    );
+    const passwordHash = await hashPassword(input.newPassword);
+    await this.repository.transaction(async (transaction) => {
+      await this.repository.changePasswordAndRevokeSessions(userId, passwordHash, transaction);
+      await this.audit.record(
+        {
+          ...this.userAuditContext(context, userId),
+          category: 'security',
+          action: 'identity.password.changed',
+          resourceType: 'identity.user',
+          resourceId: userId,
+        },
+        transaction,
+      );
+    });
   }
 
-  async requestPasswordReset(email: string): Promise<{ accepted: true; testToken?: string }> {
+  async requestPasswordReset(
+    email: string,
+    context?: Partial<AuditContext>,
+  ): Promise<{ accepted: true; testToken?: string }> {
     const user = await this.repository.findUserByEmail(email);
-    if (!user || user.status !== 'active') return { accepted: true };
+    if (!user || user.status !== 'active') {
+      await this.audit.record({
+        ...this.userAuditContext(context, null, email),
+        category: 'security',
+        action: 'identity.password-reset.requested',
+        resourceType: 'identity.user',
+        metadata: { accountMatched: false },
+      });
+      return { accepted: true };
+    }
     const actionToken = token();
     const expiresAt = this.actionTokenExpiry();
-    await this.repository.createActionToken({
-      userId: user.id,
-      purpose: 'password_reset',
-      tokenDigest: digest(actionToken),
-      expiresAt,
+    await this.repository.transaction(async (transaction) => {
+      await this.repository.createActionToken(
+        {
+          userId: user.id,
+          purpose: 'password_reset',
+          tokenDigest: digest(actionToken),
+          expiresAt,
+        },
+        transaction,
+      );
+      await this.audit.record(
+        {
+          ...this.userAuditContext(context, user.id, user.displayName ?? user.email),
+          category: 'security',
+          action: 'identity.password-reset.requested',
+          resourceType: 'identity.user',
+          resourceId: user.id,
+          metadata: { accountMatched: true },
+        },
+        transaction,
+      );
     });
     await this.actionDelivery.deliver({
       email: user.email,
@@ -158,26 +265,65 @@ export class IdentityService {
     return this.exposedActionToken(actionToken);
   }
 
-  async confirmPasswordReset(input: ConfirmPasswordReset): Promise<void> {
-    const consumed = await this.repository.resetPasswordWithToken(
-      digest(input.token),
-      await hashPassword(input.newPassword),
-    );
-    if (!consumed) throw invalidActionToken();
+  async confirmPasswordReset(
+    input: ConfirmPasswordReset,
+    context?: Partial<AuditContext>,
+  ): Promise<void> {
+    const passwordHash = await hashPassword(input.newPassword);
+    await this.repository.transaction(async (transaction) => {
+      const userId = await this.repository.resetPasswordWithToken(
+        digest(input.token),
+        passwordHash,
+        transaction,
+      );
+      if (!userId) throw invalidActionToken();
+      await this.audit.record(
+        {
+          ...this.userAuditContext(context, userId),
+          category: 'security',
+          action: 'identity.password-reset.completed',
+          resourceType: 'identity.user',
+          resourceId: userId,
+        },
+        transaction,
+      );
+    });
   }
 
-  async requestEmailVerification(userId: string): Promise<{ accepted: true; testToken?: string }> {
+  async requestEmailVerification(
+    userId: string,
+    context?: Partial<AuditContext>,
+  ): Promise<{ accepted: true; testToken?: string }> {
     const credential = await this.repository.findCredentialByUserId(userId);
     if (!credential || credential.user.status !== 'active' || credential.user.emailVerifiedAt) {
       return { accepted: true };
     }
     const actionToken = token();
     const expiresAt = this.actionTokenExpiry();
-    await this.repository.createActionToken({
-      userId,
-      purpose: 'email_verification',
-      tokenDigest: digest(actionToken),
-      expiresAt,
+    await this.repository.transaction(async (transaction) => {
+      await this.repository.createActionToken(
+        {
+          userId,
+          purpose: 'email_verification',
+          tokenDigest: digest(actionToken),
+          expiresAt,
+        },
+        transaction,
+      );
+      await this.audit.record(
+        {
+          ...this.userAuditContext(
+            context,
+            userId,
+            credential.user.displayName ?? credential.user.email,
+          ),
+          category: 'security',
+          action: 'identity.email-verification.requested',
+          resourceType: 'identity.user',
+          resourceId: userId,
+        },
+        transaction,
+      );
     });
     await this.actionDelivery.deliver({
       email: credential.user.email,
@@ -188,19 +334,57 @@ export class IdentityService {
     return this.exposedActionToken(actionToken);
   }
 
-  async confirmEmailVerification(actionToken: string): Promise<void> {
-    if (!(await this.repository.consumeEmailVerification(digest(actionToken)))) {
-      throw invalidActionToken();
-    }
+  async confirmEmailVerification(
+    actionToken: string,
+    context?: Partial<AuditContext>,
+  ): Promise<void> {
+    await this.repository.transaction(async (transaction) => {
+      const userId = await this.repository.consumeEmailVerification(
+        digest(actionToken),
+        transaction,
+      );
+      if (!userId) throw invalidActionToken();
+      await this.audit.record(
+        {
+          ...this.userAuditContext(context, userId),
+          category: 'security',
+          action: 'identity.email-verification.completed',
+          resourceType: 'identity.user',
+          resourceId: userId,
+        },
+        transaction,
+      );
+    });
   }
 
   async ensureBootstrapUser(email: string, password: string): Promise<PublicIdentityUser> {
     const existing = await this.repository.findUserByEmail(email);
     if (existing) return existing;
-    return this.repository.createUser({
-      email,
-      passwordHash: await hashPassword(password),
-      emailVerified: true,
+    const passwordHash = await hashPassword(password);
+    return this.repository.transaction(async (transaction) => {
+      const user = await this.repository.createUser(
+        {
+          email,
+          passwordHash,
+          emailVerified: true,
+        },
+        transaction,
+      );
+      await this.audit.record(
+        {
+          actorType: 'system',
+          category: 'system',
+          action: 'identity.bootstrap-account.created',
+          resourceType: 'identity.user',
+          resourceId: user.id,
+          changes: [
+            { field: 'email', before: null, after: user.email },
+            { field: 'status', before: null, after: user.status },
+          ],
+        },
+        transaction,
+      );
+      return user;
     });
   }
 
@@ -251,12 +435,15 @@ export class IdentityService {
     }
   }
 
-  async updateUser(input: {
-    userId: string;
-    displayName?: string | null;
-    status?: 'active' | 'disabled';
-  }): Promise<PublicIdentityUser> {
-    const user = await this.repository.updateUser(input);
+  async updateUser(
+    input: {
+      userId: string;
+      displayName?: string | null;
+      status?: 'active' | 'disabled';
+    },
+    context: { executor?: DatabaseExecutor } = {},
+  ): Promise<PublicIdentityUser> {
+    const user = await this.repository.updateUser(input, context.executor);
     if (!user) throw new ApiError(404, 'IDENTITY_USER_NOT_FOUND', '账号不存在');
     return user;
   }
@@ -265,6 +452,22 @@ export class IdentityService {
     const actual = Buffer.from(digest(value));
     const expected = Buffer.from(expectedDigest);
     return actual.length === expected.length && timingSafeEqual(actual, expected);
+  }
+
+  private userAuditContext(
+    context: Partial<AuditContext> | undefined,
+    userId: string | null,
+    label?: string | null,
+  ): AuditContext {
+    return {
+      actorType: 'user',
+      actorId: userId,
+      actorLabel: label ?? context?.actorLabel ?? null,
+      requestId: context?.requestId ?? null,
+      correlationId: context?.correlationId ?? null,
+      ipAddress: context?.ipAddress ?? null,
+      userAgent: context?.userAgent ?? null,
+    };
   }
 
   private actionTokenExpiry(): Date {

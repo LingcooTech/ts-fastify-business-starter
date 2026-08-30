@@ -41,7 +41,13 @@ test.beforeEach(async ({ page }) => {
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        permissions: ['accounts.read', 'accounts.manage', 'roles.read', 'roles.manage'],
+        permissions: [
+          'accounts.read',
+          'accounts.manage',
+          'roles.read',
+          'roles.manage',
+          'audit.read',
+        ],
       }),
     });
   });
@@ -119,6 +125,34 @@ test.beforeEach(async ({ page }) => {
       }),
     });
   });
+  await page.route('**/api/audit/events**', async (route) => {
+    const event = {
+      id: '0b84525e-a74f-4fc9-af28-4602bf0b305f',
+      occurredAt: '2026-08-30T08:00:00.000Z',
+      eventVersion: 1,
+      redactionVersion: 1,
+      category: 'access',
+      actorType: 'user',
+      actorId: '7f4cc774-403b-4d44-8c43-8f2fb26f0a85',
+      actorLabel: 'Bootstrap Owner',
+      action: 'access.role.created',
+      resourceType: 'access.role',
+      resourceId: '8b2082fd-c5c7-48d5-9d4d-aa415473b357',
+      outcome: 'success',
+      requestId: 'audit-e2e-request',
+      correlationId: null,
+      ipAddress: '127.0.0.1',
+      userAgent: 'Playwright',
+      changes: [{ field: 'name', before: null, after: 'Owner' }],
+      metadata: {},
+    };
+    const detail = new URL(route.request().url()).pathname.endsWith(event.id);
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(detail ? event : { items: [event], page: 1, pageSize: 20, total: 1 }),
+    });
+  });
 });
 
 test('redirects an unauthenticated visitor to the login page', async ({ page }) => {
@@ -187,6 +221,18 @@ test('renders role and account management as complete permission-aware pages', a
   await expect(page.getByText('正常', { exact: true })).toBeVisible();
 });
 
+test('renders searchable audit logs and a read-only event detail', async ({ page }) => {
+  await page.goto('/admin/audit');
+  await expect(page.getByRole('heading', { name: '审计日志' })).toBeVisible({ timeout: 20_000 });
+  const action = page.getByText('access.role.created', { exact: true });
+  await expect(action).toBeVisible();
+  await action.click();
+  const detail = page.getByRole('dialog', { name: '审计详情' });
+  await expect(detail).toBeVisible();
+  await expect(detail.getByText('audit-e2e-request', { exact: true })).toBeVisible();
+  await expect(detail.getByText('变更摘要', { exact: true })).toBeVisible();
+});
+
 test('hides protected navigation when the account has no matching permission', async ({ page }) => {
   await page.route('**/api/access/permissions', async (route) => {
     await route.fulfill({
@@ -201,4 +247,5 @@ test('hides protected navigation when the account has no matching permission', a
   }
   await expect(page.getByRole('menuitem', { name: /账号管理/ })).toHaveCount(0);
   await expect(page.getByRole('menuitem', { name: /角色与权限/ })).toHaveCount(0);
+  await expect(page.getByRole('menuitem', { name: /审计日志/ })).toHaveCount(0);
 });

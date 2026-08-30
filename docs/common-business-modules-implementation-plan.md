@@ -13,9 +13,11 @@
 - 阶段 0：已于 2026-08-30 完成；
 - 阶段 1 Identity：已于 2026-08-30 完成；
 - 阶段 2 Access Control：已于 2026-08-30 完成；
-- 当前质量门禁：Format、Lint、Typecheck、Unit、Build、Admin Static Smoke、Playwright、Docker Smoke 均通过；
-- 下一阶段：Audit；
-- Audit 开始前不并行创建 Settings 或其他模块骨架。
+- 阶段 3 Audit：已于 2026-08-31 完成；
+- 当前质量门禁：Format、Lint、Typecheck、Unit、Build、Admin Static Smoke、PostgreSQL Migration/Integration 和桌面/移动端 Playwright 均通过；
+- 本地 Docker Smoke 仅因 Docker Hub Token 请求超时未完成镜像拉取，失败发生在项目镜像构建前，由远程 CI 继续验证；
+- 下一阶段：Settings；
+- Settings 开始前不并行创建 Idempotency 或其他模块骨架。
 
 ## 1. 最终决策
 
@@ -834,7 +836,18 @@ Admin 页面：
 
 ### 阶段 3：Audit
 
-完成审计模块，并通过预先定义的 Audit Port 接入 Identity 和 Access。接入只允许修改 Composition 和调用点，不修改两者数据模型。
+已完成内容：
+
+1. 追加式 `audit_events`、事件/脱敏版本、分类、Actor 快照、Resource、Request/Correlation ID、网络上下文和结构化变更摘要；
+2. PostgreSQL Trigger 在数据库层拒绝普通 `UPDATE` 和 `DELETE`，应用不暴露修改或删除 Port/API；
+3. 显式 Audit Writer Port、稳定事件命名、递归敏感键脱敏、动态变更字段脱敏及结构/总大小限制；
+4. Audit 写入与 Identity Session、密码/Token 状态，以及 Access 角色、权限、账号和角色分配共享事务；
+5. 登录失败等无业务写入安全事件独立追加，高频 Session `lastSeenAt` 和纯查询不进入审计；
+6. 查询 API 支持账号、Actor 类型、分类、动作、资源、结果、时间范围和全文搜索，列表稳定排序并提供详情 API；
+7. Contracts、无 React API Client、Admin 权限导航、完整筛选、分页和只读详情 Drawer；
+8. Migration 幂等、数据库不可变性、脱敏、审计失败回滚、Access 全管理写路径、桌面/移动端和生产静态托管验收。
+
+接入只修改 Identity/Access 的 Composition、Application 调用点和 Repository Executor 能力，没有修改两者数据模型。
 
 ### 阶段 4：Settings
 

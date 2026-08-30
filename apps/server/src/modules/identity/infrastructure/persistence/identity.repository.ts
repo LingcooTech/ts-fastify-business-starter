@@ -38,8 +38,11 @@ export class IdentityRepository {
     return this.findCredential(eq(identityUsers.email, email));
   }
 
-  async findCredentialByUserId(userId: string): Promise<IdentityCredential | null> {
-    return this.findCredential(eq(identityUsers.id, userId));
+  async findCredentialByUserId(
+    userId: string,
+    executor: DatabaseExecutor = this.database.db,
+  ): Promise<IdentityCredential | null> {
+    return this.findCredential(eq(identityUsers.id, userId), executor);
   }
 
   async findUserByEmail(email: string): Promise<PublicIdentityUser | null> {
@@ -51,8 +54,11 @@ export class IdentityRepository {
     return user ? publicUser(user) : null;
   }
 
-  async findUserById(userId: string): Promise<PublicIdentityUser | null> {
-    const [user] = await this.database.db
+  async findUserById(
+    userId: string,
+    executor: DatabaseExecutor = this.database.db,
+  ): Promise<PublicIdentityUser | null> {
+    const [user] = await executor
       .select()
       .from(identityUsers)
       .where(eq(identityUsers.id, userId))
@@ -122,13 +128,16 @@ export class IdentityRepository {
     return executor ? create(executor) : this.database.transaction(create);
   }
 
-  async updateUser(input: {
-    userId: string;
-    displayName?: string | null;
-    status?: 'active' | 'disabled';
-  }): Promise<PublicIdentityUser | null> {
-    return this.database.transaction(async (transaction) => {
-      const [user] = await transaction
+  async updateUser(
+    input: {
+      userId: string;
+      displayName?: string | null;
+      status?: 'active' | 'disabled';
+    },
+    executor?: DatabaseExecutor,
+  ): Promise<PublicIdentityUser | null> {
+    const update = async (writeExecutor: DatabaseExecutor) => {
+      const [user] = await writeExecutor
         .update(identityUsers)
         .set({
           ...(input.displayName !== undefined ? { displayName: input.displayName } : {}),
@@ -138,37 +147,50 @@ export class IdentityRepository {
         .where(eq(identityUsers.id, input.userId))
         .returning();
       if (!user) return null;
-      if (input.status === 'disabled') await this.revokeSessions(transaction, input.userId);
+      if (input.status === 'disabled') await this.revokeSessions(writeExecutor, input.userId);
       return publicUser(user);
-    });
+    };
+    return executor ? update(executor) : this.database.transaction(update);
   }
 
-  async updatePasswordHash(userId: string, passwordHash: string): Promise<void> {
-    await this.database.db
+  async updatePasswordHash(
+    userId: string,
+    passwordHash: string,
+    executor: DatabaseExecutor = this.database.db,
+  ): Promise<void> {
+    await executor
       .update(identityPasswordCredentials)
       .set({ passwordHash, passwordChangedAt: new Date() })
       .where(eq(identityPasswordCredentials.userId, userId));
   }
 
-  async changePasswordAndRevokeSessions(userId: string, passwordHash: string): Promise<void> {
-    await this.database.transaction(async (transaction) => {
-      await transaction
+  async changePasswordAndRevokeSessions(
+    userId: string,
+    passwordHash: string,
+    executor?: DatabaseExecutor,
+  ): Promise<void> {
+    const change = async (writeExecutor: DatabaseExecutor) => {
+      await writeExecutor
         .update(identityPasswordCredentials)
         .set({ passwordHash, passwordChangedAt: new Date() })
         .where(eq(identityPasswordCredentials.userId, userId));
-      await this.revokeSessions(transaction, userId);
-    });
+      await this.revokeSessions(writeExecutor, userId);
+    };
+    await (executor ? change(executor) : this.database.transaction(change));
   }
 
-  async createSession(input: {
-    userId: string;
-    tokenDigest: string;
-    csrfDigest: string;
-    expiresAt: Date;
-    userAgent: string | null;
-    ipAddress: string | null;
-  }): Promise<{ id: string; expiresAt: Date }> {
-    const [session] = await this.database.db.insert(identitySessions).values(input).returning({
+  async createSession(
+    input: {
+      userId: string;
+      tokenDigest: string;
+      csrfDigest: string;
+      expiresAt: Date;
+      userAgent: string | null;
+      ipAddress: string | null;
+    },
+    executor: DatabaseExecutor = this.database.db,
+  ): Promise<{ id: string; expiresAt: Date }> {
+    const [session] = await executor.insert(identitySessions).values(input).returning({
       id: identitySessions.id,
       expiresAt: identitySessions.expiresAt,
     });
@@ -234,8 +256,11 @@ export class IdentityRepository {
     return sessions.map((session) => ({ ...session, current: session.id === currentSessionId }));
   }
 
-  async revokeSession(sessionId: string): Promise<void> {
-    await this.database.db
+  async revokeSession(
+    sessionId: string,
+    executor: DatabaseExecutor = this.database.db,
+  ): Promise<void> {
+    await executor
       .update(identitySessions)
       .set({ revokedAt: new Date() })
       .where(and(eq(identitySessions.id, sessionId), isNull(identitySessions.revokedAt)));
@@ -245,8 +270,9 @@ export class IdentityRepository {
     userId: string,
     sessionId: string,
     currentSessionId: string,
+    executor: DatabaseExecutor = this.database.db,
   ): Promise<boolean> {
-    const [revoked] = await this.database.db
+    const [revoked] = await executor
       .update(identitySessions)
       .set({ revokedAt: new Date() })
       .where(
@@ -261,14 +287,17 @@ export class IdentityRepository {
     return Boolean(revoked);
   }
 
-  async createActionToken(input: {
-    userId: string;
-    purpose: IdentityActionPurpose;
-    tokenDigest: string;
-    expiresAt: Date;
-  }): Promise<void> {
-    await this.database.transaction(async (transaction) => {
-      await transaction
+  async createActionToken(
+    input: {
+      userId: string;
+      purpose: IdentityActionPurpose;
+      tokenDigest: string;
+      expiresAt: Date;
+    },
+    executor?: DatabaseExecutor,
+  ): Promise<void> {
+    const create = async (writeExecutor: DatabaseExecutor) => {
+      await writeExecutor
         .update(identityActionTokens)
         .set({ consumedAt: new Date() })
         .where(
@@ -278,13 +307,17 @@ export class IdentityRepository {
             isNull(identityActionTokens.consumedAt),
           ),
         );
-      await transaction.insert(identityActionTokens).values(input);
-    });
+      await writeExecutor.insert(identityActionTokens).values(input);
+    };
+    await (executor ? create(executor) : this.database.transaction(create));
   }
 
-  async consumeEmailVerification(tokenDigest: string): Promise<boolean> {
-    return this.database.transaction(async (transaction) => {
-      const [token] = await transaction
+  async consumeEmailVerification(
+    tokenDigest: string,
+    executor?: DatabaseExecutor,
+  ): Promise<string | null> {
+    const consume = async (writeExecutor: DatabaseExecutor) => {
+      const [token] = await writeExecutor
         .update(identityActionTokens)
         .set({ consumedAt: new Date() })
         .where(
@@ -297,17 +330,23 @@ export class IdentityRepository {
         )
         .returning({ userId: identityActionTokens.userId });
       if (!token) return false;
-      await transaction
+      await writeExecutor
         .update(identityUsers)
         .set({ emailVerifiedAt: new Date(), updatedAt: new Date() })
         .where(eq(identityUsers.id, token.userId));
-      return true;
-    });
+      return token.userId;
+    };
+    const result = executor ? await consume(executor) : await this.database.transaction(consume);
+    return result || null;
   }
 
-  async resetPasswordWithToken(tokenDigest: string, passwordHash: string): Promise<boolean> {
-    return this.database.transaction(async (transaction) => {
-      const [token] = await transaction
+  async resetPasswordWithToken(
+    tokenDigest: string,
+    passwordHash: string,
+    executor?: DatabaseExecutor,
+  ): Promise<string | null> {
+    const reset = async (writeExecutor: DatabaseExecutor) => {
+      const [token] = await writeExecutor
         .update(identityActionTokens)
         .set({ consumedAt: new Date() })
         .where(
@@ -320,19 +359,26 @@ export class IdentityRepository {
         )
         .returning({ userId: identityActionTokens.userId });
       if (!token) return false;
-      await transaction
+      await writeExecutor
         .update(identityPasswordCredentials)
         .set({ passwordHash, passwordChangedAt: new Date() })
         .where(eq(identityPasswordCredentials.userId, token.userId));
-      await this.revokeSessions(transaction, token.userId);
-      return true;
-    });
+      await this.revokeSessions(writeExecutor, token.userId);
+      return token.userId;
+    };
+    const result = executor ? await reset(executor) : await this.database.transaction(reset);
+    return result || null;
+  }
+
+  transaction<T>(work: (executor: DatabaseExecutor) => Promise<T>): Promise<T> {
+    return this.database.transaction(work);
   }
 
   private async findCredential(
     condition: ReturnType<typeof eq>,
+    executor: DatabaseExecutor = this.database.db,
   ): Promise<IdentityCredential | null> {
-    const [record] = await this.database.db
+    const [record] = await executor
       .select({ user: identityUsers, passwordHash: identityPasswordCredentials.passwordHash })
       .from(identityUsers)
       .innerJoin(

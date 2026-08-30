@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify';
 
 import type { DatabaseHandle } from '../../database/database.js';
 import type { IdentityService } from '../identity/public.js';
+import { NOOP_AUDIT_WRITER, type AuditWriter } from '../audit/public.js';
 import { AccessControlService } from './application/access-control.service.js';
 import { registerAccessControlRoutes } from './api/routes.js';
 import { AccessControlRepository } from './infrastructure/persistence/access-control.repository.js';
@@ -9,6 +10,7 @@ import { AccessControlRepository } from './infrastructure/persistence/access-con
 export interface AccessControlModuleDependencies {
   database: DatabaseHandle;
   identity: IdentityService;
+  audit?: AuditWriter;
   service?: AccessControlService;
 }
 
@@ -19,6 +21,7 @@ export function createAccessControlService(
     new AccessControlRepository(dependencies.database),
     dependencies.identity,
     dependencies.database,
+    dependencies.audit ?? NOOP_AUDIT_WRITER,
   );
 }
 

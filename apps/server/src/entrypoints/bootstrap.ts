@@ -6,13 +6,15 @@ import { validateEnvironment } from '../config/environment.js';
 import { createDatabase } from '../database/database.js';
 import { createAccessControlService } from '../modules/access-control/public.js';
 import { createIdentityService } from '../modules/identity/public.js';
+import { createAuditService } from '../modules/audit/public.js';
 
 const environment = validateEnvironment(process.env);
 const database = createDatabase(environment.DATABASE_URL);
 
 try {
-  const identity = createIdentityService({ database, environment });
-  const access = createAccessControlService({ database, identity });
+  const audit = createAuditService({ database });
+  const identity = createIdentityService({ database, environment, audit });
+  const access = createAccessControlService({ database, identity, audit });
   await access.synchronizeSystemAccess();
   if (!environment.BOOTSTRAP_OWNER_EMAIL || !environment.BOOTSTRAP_OWNER_PASSWORD) {
     console.info(

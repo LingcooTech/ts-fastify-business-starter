@@ -94,20 +94,23 @@ export class AccessControlRepository {
     return roles.map((role) => this.roleSummary(role, permissionCounts, userCounts));
   }
 
-  async findRole(roleId: string): Promise<AccessRole | null> {
-    const [role] = await this.database.db
+  async findRole(
+    roleId: string,
+    executor: DatabaseExecutor = this.database.db,
+  ): Promise<AccessRole | null> {
+    const [role] = await executor
       .select()
       .from(accessRoles)
       .where(eq(accessRoles.id, roleId))
       .limit(1);
     if (!role) return null;
     const [permissions, assignments] = await Promise.all([
-      this.database.db
+      executor
         .select({ key: accessRolePermissions.permissionKey })
         .from(accessRolePermissions)
         .where(eq(accessRolePermissions.roleId, roleId))
         .orderBy(accessRolePermissions.permissionKey),
-      this.database.db
+      executor
         .select({ userId: accessUserRoles.userId })
         .from(accessUserRoles)
         .where(eq(accessUserRoles.roleId, roleId)),
@@ -122,71 +125,84 @@ export class AccessControlRepository {
     };
   }
 
-  async createRole(input: {
-    key: string;
-    name: string;
-    description?: string | null;
-    permissions: PermissionKey[];
-  }): Promise<AccessRole> {
-    return this.database.transaction(async (transaction) => {
-      await this.assertPermissionKeys(transaction, input.permissions);
-      const [role] = await transaction
+  async createRole(
+    input: {
+      key: string;
+      name: string;
+      description?: string | null;
+      permissions: PermissionKey[];
+    },
+    executor?: DatabaseExecutor,
+  ): Promise<AccessRole> {
+    const create = async (writeExecutor: DatabaseExecutor) => {
+      await this.assertPermissionKeys(writeExecutor, input.permissions);
+      const [role] = await writeExecutor
         .insert(accessRoles)
         .values({ key: input.key, name: input.name, description: input.description ?? null })
         .returning();
       if (!role) throw new Error('Failed to create role');
-      await this.insertRolePermissions(transaction, role.id, input.permissions);
+      await this.insertRolePermissions(writeExecutor, role.id, input.permissions);
       return {
         ...this.roleSummary(role, new Map([[role.id, input.permissions.length]]), new Map()),
         permissions: [...new Set(input.permissions)].sort(),
       };
-    });
+    };
+    return executor ? create(executor) : this.database.transaction(create);
   }
 
   async updateRole(
     roleId: string,
     input: { name?: string; description?: string | null },
+    executor: DatabaseExecutor = this.database.db,
   ): Promise<AccessRole | null> {
-    const [role] = await this.database.db
+    const [role] = await executor
       .update(accessRoles)
       .set({ ...input, updatedAt: new Date() })
       .where(eq(accessRoles.id, roleId))
       .returning();
-    return role ? this.findRole(role.id) : null;
+    return role ? this.findRole(role.id, executor) : null;
   }
 
   async replaceRolePermissions(
     roleId: string,
     permissions: PermissionKey[],
+    executor?: DatabaseExecutor,
   ): Promise<AccessRole | null> {
-    const exists = await this.findRole(roleId);
-    if (!exists) return null;
-    await this.database.transaction(async (transaction) => {
-      await this.assertPermissionKeys(transaction, permissions);
-      await transaction
+    const replace = async (writeExecutor: DatabaseExecutor) => {
+      const exists = await this.findRole(roleId, writeExecutor);
+      if (!exists) return null;
+      await this.assertPermissionKeys(writeExecutor, permissions);
+      await writeExecutor
         .delete(accessRolePermissions)
         .where(eq(accessRolePermissions.roleId, roleId));
-      await this.insertRolePermissions(transaction, roleId, permissions);
-      await transaction
+      await this.insertRolePermissions(writeExecutor, roleId, permissions);
+      await writeExecutor
         .update(accessRoles)
         .set({ updatedAt: new Date() })
         .where(eq(accessRoles.id, roleId));
-    });
-    return this.findRole(roleId);
+      return this.findRole(roleId, writeExecutor);
+    };
+    return executor ? replace(executor) : this.database.transaction(replace);
   }
 
-  async deleteRole(roleId: string): Promise<boolean> {
-    const [deleted] = await this.database.db
+  async deleteRole(
+    roleId: string,
+    executor: DatabaseExecutor = this.database.db,
+  ): Promise<boolean> {
+    const [deleted] = await executor
       .delete(accessRoles)
       .where(eq(accessRoles.id, roleId))
       .returning({ id: accessRoles.id });
     return Boolean(deleted);
   }
 
-  async rolesForUsers(userIds: string[]): Promise<Map<string, AccessUserRole[]>> {
+  async rolesForUsers(
+    userIds: string[],
+    executor: DatabaseExecutor = this.database.db,
+  ): Promise<Map<string, AccessUserRole[]>> {
     const result = new Map<string, AccessUserRole[]>();
     if (userIds.length === 0) return result;
-    const records = await this.database.db
+    const records = await executor
       .select({
         userId: accessUserRoles.userId,
         id: accessRoles.id,
@@ -237,21 +253,29 @@ export class AccessControlRepository {
     await (executor ? replace(executor) : this.database.transaction(replace));
   }
 
-  async assignOwner(userId: string): Promise<void> {
-    const [owner] = await this.database.db
+  async assignOwner(
+    userId: string,
+    executor: DatabaseExecutor = this.database.db,
+  ): Promise<boolean> {
+    const [owner] = await executor
       .select({ id: accessRoles.id })
       .from(accessRoles)
       .where(eq(accessRoles.key, OWNER_ROLE_KEY))
       .limit(1);
     if (!owner) throw new Error('Owner role has not been synchronized');
-    await this.database.db
+    const [assigned] = await executor
       .insert(accessUserRoles)
       .values({ userId, roleId: owner.id })
-      .onConflictDoNothing();
+      .onConflictDoNothing()
+      .returning({ userId: accessUserRoles.userId });
+    return Boolean(assigned);
   }
 
-  async userHasOwnerRole(userId: string): Promise<boolean> {
-    const roles = await this.rolesForUsers([userId]);
+  async userHasOwnerRole(
+    userId: string,
+    executor: DatabaseExecutor = this.database.db,
+  ): Promise<boolean> {
+    const roles = await this.rolesForUsers([userId], executor);
     return (roles.get(userId) ?? []).some((role) => role.key === OWNER_ROLE_KEY);
   }
 

@@ -11,6 +11,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 
 import type { PublicIdentityUser } from '../../identity/public.js';
+import { auditContextFromRequest } from '../../audit/public.js';
 import type { AccessControlService, AccessUser } from '../application/access-control.service.js';
 import type { AccessRole, AccessRoleSummary } from '../domain/model.js';
 
@@ -46,6 +47,15 @@ function serializeUser(user: PublicIdentityUser | AccessUser) {
   };
 }
 
+function currentActor(request: Parameters<typeof auditContextFromRequest>[0]) {
+  const user = request.identityPrincipal!.user;
+  return auditContextFromRequest(request, {
+    type: 'user',
+    id: user.id,
+    label: user.displayName ?? user.email,
+  });
+}
+
 export async function registerAccessControlRoutes(
   app: FastifyInstance,
   service: AccessControlService,
@@ -78,7 +88,10 @@ export async function registerAccessControlRoutes(
     '/api/access/roles',
     { config: { access: { permissions: ['roles.manage'] } } },
     async (request, reply) => {
-      const role = await service.createRole(parse(createRoleRequestSchema, request.body));
+      const role = await service.createRole(
+        parse(createRoleRequestSchema, request.body),
+        currentActor(request),
+      );
       return reply.status(201).send(serializeRole(role));
     },
   );
@@ -98,7 +111,11 @@ export async function registerAccessControlRoutes(
     async (request) => {
       const { id } = parse(idParamsSchema, request.params);
       return serializeRole(
-        await service.updateRole(id, parse(updateRoleRequestSchema, request.body)),
+        await service.updateRole(
+          id,
+          parse(updateRoleRequestSchema, request.body),
+          currentActor(request),
+        ),
       );
     },
   );
@@ -109,7 +126,9 @@ export async function registerAccessControlRoutes(
     async (request) => {
       const { id } = parse(idParamsSchema, request.params);
       const input = parse(replaceRolePermissionsRequestSchema, request.body);
-      return serializeRole(await service.replaceRolePermissions(id, input.permissions));
+      return serializeRole(
+        await service.replaceRolePermissions(id, input.permissions, currentActor(request)),
+      );
     },
   );
 
@@ -118,7 +137,7 @@ export async function registerAccessControlRoutes(
     { config: { access: { permissions: ['roles.manage'] } } },
     async (request) => {
       const { id } = parse(idParamsSchema, request.params);
-      await service.deleteRole(id);
+      await service.deleteRole(id, currentActor(request));
       return { accepted: true } as const;
     },
   );
@@ -140,7 +159,7 @@ export async function registerAccessControlRoutes(
       if (input.roleIds.length > 0 && !request.accessPermissions?.includes('roles.manage')) {
         throw new ApiError(403, 'ACCESS_PERMISSION_DENIED', '分配角色还需要管理角色权限');
       }
-      const user = await service.createUser(input);
+      const user = await service.createUser(input, currentActor(request));
       return reply.status(201).send(serializeUser(user));
     },
   );
@@ -164,6 +183,7 @@ export async function registerAccessControlRoutes(
           request.identityPrincipal!.user.id,
           id,
           parse(updateAccessUserRequestSchema, request.body),
+          currentActor(request),
         ),
       );
     },
@@ -175,7 +195,9 @@ export async function registerAccessControlRoutes(
     async (request) => {
       const { id } = parse(idParamsSchema, request.params);
       const input = parse(replaceUserRolesRequestSchema, request.body);
-      return serializeUser(await service.replaceUserRoles(id, input.roleIds));
+      return serializeUser(
+        await service.replaceUserRoles(id, input.roleIds, currentActor(request)),
+      );
     },
   );
 }

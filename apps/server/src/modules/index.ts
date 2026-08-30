@@ -9,6 +9,7 @@ import {
 } from './access-control/public.js';
 import { createHealthModule } from './health/plugin.js';
 import { createIdentityModule, createIdentityService } from './identity/plugin.js';
+import { createAuditModule, createAuditService } from './audit/public.js';
 
 export interface ApplicationModuleDependencies {
   environment: AppEnvironment;
@@ -19,12 +20,19 @@ export async function registerApplicationModules(
   app: FastifyInstance,
   dependencies: ApplicationModuleDependencies,
 ): Promise<void> {
-  const identity = createIdentityService(dependencies);
-  const access = createAccessControlService({ database: dependencies.database, identity });
+  const audit = createAuditService({ database: dependencies.database });
+  const identity = createIdentityService({ ...dependencies, audit });
+  const access = createAccessControlService({ database: dependencies.database, identity, audit });
   installAccessControlGuard(app, { environment: dependencies.environment, identity, access });
   await app.register(createHealthModule(dependencies));
-  await app.register(createIdentityModule({ ...dependencies, service: identity }));
+  await app.register(createIdentityModule({ ...dependencies, audit, service: identity }));
   await app.register(
-    createAccessControlModule({ database: dependencies.database, identity, service: access }),
+    createAccessControlModule({
+      database: dependencies.database,
+      identity,
+      audit,
+      service: access,
+    }),
   );
+  await app.register(createAuditModule({ database: dependencies.database, service: audit }));
 }
