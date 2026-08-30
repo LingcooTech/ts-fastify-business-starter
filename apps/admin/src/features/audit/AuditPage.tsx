@@ -249,7 +249,13 @@ function JsonBlock({ value }: { value: unknown }) {
 function AuditDetailDrawer({ id, onClose }: { id: string | null; onClose: () => void }) {
   const event = useAuditEvent(id);
   return (
-    <Drawer title="审计详情" size={720} open={Boolean(id)} onClose={onClose}>
+    <Drawer
+      title="审计详情"
+      rootClassName="audit-detail-drawer"
+      size={720}
+      open={Boolean(id)}
+      onClose={onClose}
+    >
       <AsyncState loading={event.isPending} error={event.error}>
         {event.data && (
           <Space orientation="vertical" size="large" style={{ width: '100%' }}>

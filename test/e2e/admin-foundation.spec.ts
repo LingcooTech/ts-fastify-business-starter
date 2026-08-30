@@ -224,10 +224,9 @@ test('renders role and account management as complete permission-aware pages', a
 test('renders searchable audit logs and a read-only event detail', async ({ page }) => {
   await page.goto('/admin/audit');
   await expect(page.getByRole('heading', { name: '审计日志' })).toBeVisible({ timeout: 20_000 });
-  const action = page.getByText('access.role.created', { exact: true });
-  await expect(action).toBeVisible();
-  await action.click();
-  const detail = page.getByRole('dialog', { name: '审计详情' });
+  await expect(page.getByText('access.role.created', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '详情' }).click({ force: true });
+  const detail = page.locator('.audit-detail-drawer');
   await expect(detail).toBeVisible();
   await expect(detail.getByText('audit-e2e-request', { exact: true })).toBeVisible();
   await expect(detail.getByText('变更摘要', { exact: true })).toBeVisible();
