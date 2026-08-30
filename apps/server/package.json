@@ -19,6 +19,7 @@
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate --config drizzle.config.ts",
     "db:migrate": "tsx src/entrypoints/migrate.ts",
+    "predb:bootstrap": "corepack pnpm --filter @ts-fastify-business-starter/contracts build",
     "db:bootstrap": "tsx src/entrypoints/bootstrap.ts",
     "db:studio": "drizzle-kit studio --config drizzle.config.ts"
   },
