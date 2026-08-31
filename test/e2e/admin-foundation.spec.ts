@@ -456,8 +456,9 @@ test('renders read-only idempotency diagnostics without exposing stored results'
   await expect(page.getByText('诊断页不提供强制成功、删除或重新执行操作')).toBeVisible();
 
   await page.getByRole('button', { name: '详情' }).click({ force: true });
-  const detail = page.getByRole('dialog', { name: '幂等记录详情' });
+  const detail = page.locator('.idempotency-detail-drawer');
   await expect(detail).toBeVisible();
+  await expect(detail.getByText('幂等记录详情', { exact: true })).toBeVisible();
   await expect(detail.getByText('Request Hash v1', { exact: true })).toBeVisible();
   await expect(detail.getByText(/已安全保存（48 bytes），不通过诊断 API 展示/)).toBeVisible();
   await expect(detail.getByRole('button', { name: /删除|重试|强制成功/ })).toHaveCount(0);

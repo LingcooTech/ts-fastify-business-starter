@@ -198,7 +198,14 @@ export function IdempotencyPage() {
 function IdempotencyDrawer({ id, onClose }: { id: string | null; onClose(): void }) {
   const record = useIdempotencyRecord(id);
   return (
-    <Drawer title="幂等记录详情" size={720} open={Boolean(id)} onClose={onClose}>
+    <Drawer
+      title="幂等记录详情"
+      aria-label="幂等记录详情"
+      className="idempotency-detail-drawer"
+      size={720}
+      open={Boolean(id)}
+      onClose={onClose}
+    >
       <AsyncState loading={record.isPending} error={record.error}>
         {record.data && (
           <Space orientation="vertical" size="large" style={{ width: '100%' }}>
