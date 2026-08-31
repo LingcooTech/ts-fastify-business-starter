@@ -22,6 +22,11 @@ const environment: AppEnvironment = {
   AUTH_COOKIE_SAME_SITE: 'lax',
   AUTH_COOKIE_SECURE: false,
   AUTH_EXPOSE_TEST_TOKENS: true,
+  SETTINGS_ENCRYPTION_CURRENT_KEY_ID: 'test-v1',
+  SETTINGS_ENCRYPTION_KEYS: {
+    'test-v1': 'test-settings-key-must-be-at-least-32-characters',
+  },
+  SUPPORT_EMAIL: undefined,
   BOOTSTRAP_OWNER_EMAIL: undefined,
   BOOTSTRAP_OWNER_PASSWORD: undefined,
 };

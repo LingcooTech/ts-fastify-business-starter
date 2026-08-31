@@ -117,6 +117,9 @@ importers:
       '@fastify/swagger-ui':
         specifier: 6.1.1
         version: 6.1.1
+      '@lingcoo-tech/crypto':
+        specifier: 0.1.1
+        version: 0.1.1
       '@lingcoo-tech/http':
         specifier: 0.1.1
         version: 0.1.1
@@ -1282,6 +1285,12 @@ packages:
     resolution:
       {
         integrity: sha512-T7jf+5zgsZHwNJ4lvQ7/aezbyk0nNX+zJVWpmHA7VYsEx7a7qr5Rg5IbtJFqkgze5Y2sruq1RUY8Q837Od7iFw==,
+      }
+
+  '@lingcoo-tech/crypto@0.1.1':
+    resolution:
+      {
+        integrity: sha512-Mqg6YXTnK8tdAzqQtceaQIZCa0lBkCFuigliTspqeHd2pTkYHkRMDqFMPC3xQFwCKZrl6dxlWjfVZwxMmiSLjg==,
       }
 
   '@lingcoo-tech/http@0.1.1':
@@ -4556,6 +4565,8 @@ snapshots:
   '@humanwhocodes/retry@0.4.3': {}
 
   '@jridgewell/sourcemap-codec@1.6.0': {}
+
+  '@lingcoo-tech/crypto@0.1.1': {}
 
   '@lingcoo-tech/http@0.1.1': {}
 

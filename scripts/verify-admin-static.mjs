@@ -18,6 +18,10 @@ const child = spawn(process.execPath, ['apps/server/dist/entrypoints/api.js'], {
     API_DOCS_ENABLED: 'false',
     AUTH_COOKIE_SECURE: 'true',
     AUTH_EXPOSE_TEST_TOKENS: 'false',
+    SETTINGS_ENCRYPTION_CURRENT_KEY_ID: 'smoke-v1',
+    SETTINGS_ENCRYPTION_KEYS: JSON.stringify({
+      'smoke-v1': 'static-smoke-settings-key-at-least-32-characters',
+    }),
     LOG_LEVEL: 'silent',
   },
   stdio: ['ignore', 'pipe', 'pipe'],

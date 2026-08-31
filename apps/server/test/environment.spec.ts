@@ -29,4 +29,24 @@ describe('identity environment', () => {
       validateEnvironment({ ...base, BOOTSTRAP_OWNER_EMAIL: 'owner@example.com' }),
     ).toThrow(/BOOTSTRAP_OWNER_EMAIL/);
   });
+
+  it('rejects the default settings encryption key in production', () => {
+    expect(() =>
+      validateEnvironment({
+        ...base,
+        NODE_ENV: 'production',
+        AUTH_COOKIE_SECURE: 'true',
+      }),
+    ).toThrow(/SETTINGS_ENCRYPTION_KEYS/);
+  });
+
+  it('requires the current settings key ID to exist in the keyring', () => {
+    expect(() =>
+      validateEnvironment({
+        ...base,
+        SETTINGS_ENCRYPTION_CURRENT_KEY_ID: 'missing',
+        SETTINGS_ENCRYPTION_KEYS: JSON.stringify({ available: 'a'.repeat(32) }),
+      }),
+    ).toThrow(/SETTINGS_ENCRYPTION_CURRENT_KEY_ID/);
+  });
 });

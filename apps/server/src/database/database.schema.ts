@@ -2,3 +2,4 @@
 export * from '../modules/identity/infrastructure/persistence/identity.schema.js';
 export * from '../modules/access-control/infrastructure/persistence/access-control.schema.js';
 export * from '../modules/audit/infrastructure/persistence/audit.schema.js';
+export * from '../modules/settings/infrastructure/persistence/settings.schema.js';

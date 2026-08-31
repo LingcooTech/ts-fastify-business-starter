@@ -93,6 +93,7 @@ pnpm e2e
 - [Identity](docs/identity.md)
 - [Access Control](docs/access-control.md)
 - [Audit](docs/audit.md)
+- [Settings](docs/settings.md)
 
 ## 实施边界
 

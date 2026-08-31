@@ -15,3 +15,6 @@
 - Added the append-only Audit module with database-enforced immutability, defensive redaction,
   transaction-aware Identity/Access events, query contracts/API client, and responsive Admin
   filtering and event details.
+- Added the typed Settings module with layered environment/database/default resolution, optimistic
+  concurrency, encrypted Secret key rotation, audited provider tests, public contracts/API client,
+  and a permission-aware Admin settings page.

@@ -47,6 +47,8 @@ test.beforeEach(async ({ page }) => {
           'roles.read',
           'roles.manage',
           'audit.read',
+          'settings.read',
+          'settings.manage',
         ],
       }),
     });
@@ -153,6 +155,156 @@ test.beforeEach(async ({ page }) => {
       body: JSON.stringify(detail ? event : { items: [event], page: 1, pageSize: 20, total: 1 }),
     });
   });
+  let localeSource: 'default' | 'database' = 'default';
+  let localeVersion: number | null = null;
+  let localeValue = 'zh-CN';
+  await page.route('**/api/settings**', async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const setting = (input: {
+      key: string;
+      label: string;
+      description: string;
+      kind: 'public' | 'internal' | 'secret';
+      control: 'text' | 'email' | 'url' | 'number' | 'boolean' | 'select';
+      source: 'environment' | 'database' | 'default' | 'unset';
+      configured: boolean;
+      readOnly: boolean;
+      version: number | null;
+      value?: unknown;
+      options?: Array<{ label: string; value: string | number }>;
+    }) => ({
+      group: input.key.startsWith('application.') ? 'application' : 'integrations',
+      groupLabel: input.key.startsWith('application.') ? '应用信息' : '扩展能力',
+      options: [],
+      updatedAt: null,
+      updatedBy: null,
+      ...input,
+    });
+
+    if (request.method() === 'GET' && url.pathname === '/api/settings') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          items: [
+            setting({
+              key: 'application.name',
+              label: '应用名称',
+              description: '用于管理后台和公共页面的应用名称。',
+              kind: 'public',
+              control: 'text',
+              source: 'environment',
+              configured: true,
+              readOnly: true,
+              version: null,
+              value: 'Business Starter',
+            }),
+            setting({
+              key: 'application.locale',
+              label: '默认语言',
+              description: '页面和通知使用的默认语言。',
+              kind: 'public',
+              control: 'select',
+              source: localeSource,
+              configured: true,
+              readOnly: false,
+              version: localeVersion,
+              value: localeValue,
+              options: [
+                { label: '简体中文', value: 'zh-CN' },
+                { label: 'English', value: 'en-US' },
+              ],
+            }),
+            setting({
+              key: 'integrations.api-token',
+              label: 'API Token',
+              description: '验证敏感设置通用编辑能力。',
+              kind: 'secret',
+              control: 'text',
+              source: 'database',
+              configured: true,
+              readOnly: false,
+              version: 3,
+            }),
+          ],
+          connectionTests: [
+            {
+              key: 'integrations.api-health',
+              group: 'integrations',
+              label: 'API 连接',
+              description: '验证外部 API 可用性。',
+              requiredSettings: ['integrations.api-token'],
+            },
+          ],
+        }),
+      });
+      return;
+    }
+    if (request.method() === 'PUT' && url.pathname === '/api/settings/application.locale') {
+      const payload = request.postDataJSON() as { value: string; expectedVersion: number | null };
+      if (payload.expectedVersion !== localeVersion) {
+        await route.fulfill({
+          status: 409,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            error: { code: 'SETTING_VERSION_CONFLICT', message: '设置已被修改' },
+          }),
+        });
+        return;
+      }
+      localeSource = 'database';
+      localeVersion = (localeVersion ?? 0) + 1;
+      localeValue = payload.value;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(
+          setting({
+            key: 'application.locale',
+            label: '默认语言',
+            description: '页面和通知使用的默认语言。',
+            kind: 'public',
+            control: 'select',
+            source: localeSource,
+            configured: true,
+            readOnly: false,
+            version: localeVersion,
+            value: localeValue,
+            options: [
+              { label: '简体中文', value: 'zh-CN' },
+              { label: 'English', value: 'en-US' },
+            ],
+          }),
+        ),
+      });
+      return;
+    }
+    if (
+      request.method() === 'POST' &&
+      url.pathname === '/api/settings/tests/integrations.api-health'
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          message: '连接正常',
+          testedAt: '2026-08-31T00:00:00.000Z',
+        }),
+      });
+      return;
+    }
+    if (request.method() === 'POST' && url.pathname === '/api/settings/actions/rotate-secrets') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ rotated: 1 }),
+      });
+      return;
+    }
+    await route.fallback();
+  });
 });
 
 test('redirects an unauthenticated visitor to the login page', async ({ page }) => {
@@ -232,6 +384,32 @@ test('renders searchable audit logs and a read-only event detail', async ({ page
   await expect(detail.getByText('变更摘要', { exact: true })).toBeVisible();
 });
 
+test('manages settings with source visibility, secret protection, and connection tests', async ({
+  page,
+}) => {
+  await page.goto('/admin/settings');
+  await expect(page.getByRole('heading', { name: '系统设置' })).toBeVisible({ timeout: 20_000 });
+  const applicationName = page.locator('[data-setting-key="application.name"]');
+  await expect(applicationName.getByText('环境变量', { exact: true })).toBeVisible();
+  await expect(applicationName.getByText('请在部署环境中修改')).toBeVisible();
+  await expect(applicationName.getByRole('button', { name: '保存' })).toHaveCount(0);
+
+  const locale = page.locator('[data-setting-key="application.locale"]');
+  await locale.locator('.ant-select').click();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await locale.getByRole('button', { name: '保存' }).click();
+  await expect(locale.getByText('管理后台', { exact: true })).toBeVisible();
+  await expect(locale.getByRole('button', { name: '恢复默认来源' })).toBeVisible();
+
+  const secret = page.locator('[data-setting-key="integrations.api-token"]');
+  await expect(secret.getByText('敏感', { exact: true })).toBeVisible();
+  await expect(secret.getByPlaceholder('已配置；输入完整新值以替换')).toHaveValue('');
+
+  await page.getByRole('button', { name: '测试连接' }).click();
+  await expect(page.getByText('连接正常')).toBeVisible();
+});
+
 test('hides protected navigation when the account has no matching permission', async ({ page }) => {
   await page.route('**/api/access/permissions', async (route) => {
     await route.fulfill({
@@ -247,4 +425,5 @@ test('hides protected navigation when the account has no matching permission', a
   await expect(page.getByRole('menuitem', { name: /账号管理/ })).toHaveCount(0);
   await expect(page.getByRole('menuitem', { name: /角色与权限/ })).toHaveCount(0);
   await expect(page.getByRole('menuitem', { name: /审计日志/ })).toHaveCount(0);
+  await expect(page.getByRole('menuitem', { name: /系统设置/ })).toHaveCount(0);
 });

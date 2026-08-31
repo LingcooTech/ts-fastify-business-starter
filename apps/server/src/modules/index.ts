@@ -10,6 +10,7 @@ import {
 import { createHealthModule } from './health/plugin.js';
 import { createIdentityModule, createIdentityService } from './identity/plugin.js';
 import { createAuditModule, createAuditService } from './audit/public.js';
+import { createSettingsModule, createSettingsService } from './settings/public.js';
 
 export interface ApplicationModuleDependencies {
   environment: AppEnvironment;
@@ -23,6 +24,7 @@ export async function registerApplicationModules(
   const audit = createAuditService({ database: dependencies.database });
   const identity = createIdentityService({ ...dependencies, audit });
   const access = createAccessControlService({ database: dependencies.database, identity, audit });
+  const settings = createSettingsService({ ...dependencies, audit });
   installAccessControlGuard(app, { environment: dependencies.environment, identity, access });
   await app.register(createHealthModule(dependencies));
   await app.register(createIdentityModule({ ...dependencies, audit, service: identity }));
@@ -35,4 +37,12 @@ export async function registerApplicationModules(
     }),
   );
   await app.register(createAuditModule({ database: dependencies.database, service: audit }));
+  await app.register(
+    createSettingsModule({
+      ...dependencies,
+      audit,
+      registry: settings.registry,
+      service: settings.service,
+    }),
+  );
 }

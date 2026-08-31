@@ -14,10 +14,10 @@
 - 阶段 1 Identity：已于 2026-08-30 完成；
 - 阶段 2 Access Control：已于 2026-08-30 完成；
 - 阶段 3 Audit：已于 2026-08-31 完成；
+- 阶段 4 Settings：已于 2026-08-31 完成；
 - 当前质量门禁：Format、Lint、Typecheck、Unit、Build、Admin Static Smoke、PostgreSQL Migration/Integration 和桌面/移动端 Playwright 均通过；
-- 本地 Docker Smoke 仅因 Docker Hub Token 请求超时未完成镜像拉取，失败发生在项目镜像构建前，由远程 CI 继续验证；
-- 下一阶段：Settings；
-- Settings 开始前不并行创建 Idempotency 或其他模块骨架。
+- 下一阶段：Idempotency；
+- Idempotency 开始前不并行创建 Jobs 或其他模块骨架。
 
 ## 1. 最终决策
 
@@ -851,7 +851,20 @@ Admin 页面：
 
 ### 阶段 4：Settings
 
-完成类型化设置、Secret 和 Admin 设置页。
+已完成内容：
+
+1. 代码作为事实来源的 Typed Settings Registry，以及 `public`、`internal`、`secret` 三级可见性；
+2. `环境变量 > 数据库 > 默认值 > 未配置` 的固定解析顺序，环境变量覆盖项只读；
+3. `system_settings` 互斥普通值/密文存储、正整数乐观版本、修改人和时间，并提供完整 Migration；
+4. AES-256-GCM Secret 信封、部署 Keyring、生产默认密钥拒绝、旧 Key ID 解密和事务化批量轮换；
+5. 首次创建与精确版本更新/清除，非法值、环境覆盖和并发冲突返回稳定错误；
+6. 可组合 Provider Connection Tester Port、必需设置解析、返回值校验、超时与 `AbortSignal` 取消；
+7. 设置保存、清除和密钥轮换与 Audit 同事务，连接测试独立审计且 Secret 明文不进入事件；
+8. Contracts、无 React API Client、公开设置 API、权限保护 Admin API 和分组设置页面；
+9. Admin 完成来源标记、环境项只读、Secret 不回填、恢复默认、密文轮换和连接测试交互；
+10. Contract/API Client 单测、PostgreSQL 集成测试、桌面/移动端 Playwright、生产静态托管和 Docker 验收。
+
+核心只注册当前真实应用设置，不提前创建 Mail、Storage、Payments 或行业模块的设置骨架。
 
 ### 阶段 5：Idempotency
 
