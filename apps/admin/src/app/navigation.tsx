@@ -7,6 +7,7 @@ import {
   UserOutlined,
   FileSearchOutlined,
   SettingOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons';
 import type { PermissionKey } from '@ts-fastify-business-starter/contracts';
 import type { ReactNode } from 'react';
@@ -49,6 +50,13 @@ export const foundationNavigation: AdminNavigationItem[] = [
     path: '/settings',
     icon: <SettingOutlined />,
     permission: 'settings.read',
+  },
+  {
+    key: 'idempotency',
+    label: '幂等诊断',
+    path: '/idempotency',
+    icon: <HistoryOutlined />,
+    permission: 'idempotency.read',
   },
   {
     key: 'account-security',

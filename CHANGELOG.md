@@ -18,3 +18,6 @@
 - Added the typed Settings module with layered environment/database/default resolution, optimistic
   concurrency, encrypted Secret key rotation, audited provider tests, public contracts/API client,
   and a permission-aware Admin settings page.
+- Added the transactional Idempotency module with canonical request hashing, lease recovery and
+  fencing, bounded result replay, retry classification, read-only diagnostics, and responsive Admin
+  visibility.

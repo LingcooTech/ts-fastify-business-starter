@@ -11,6 +11,7 @@ import { createHealthModule } from './health/plugin.js';
 import { createIdentityModule, createIdentityService } from './identity/plugin.js';
 import { createAuditModule, createAuditService } from './audit/public.js';
 import { createSettingsModule, createSettingsService } from './settings/public.js';
+import { createIdempotencyModule, createIdempotencyService } from './idempotency/public.js';
 
 export interface ApplicationModuleDependencies {
   environment: AppEnvironment;
@@ -25,6 +26,7 @@ export async function registerApplicationModules(
   const identity = createIdentityService({ ...dependencies, audit });
   const access = createAccessControlService({ database: dependencies.database, identity, audit });
   const settings = createSettingsService({ ...dependencies, audit });
+  const idempotency = createIdempotencyService(dependencies);
   installAccessControlGuard(app, { environment: dependencies.environment, identity, access });
   await app.register(createHealthModule(dependencies));
   await app.register(createIdentityModule({ ...dependencies, audit, service: identity }));
@@ -44,5 +46,8 @@ export async function registerApplicationModules(
       registry: settings.registry,
       service: settings.service,
     }),
+  );
+  await app.register(
+    createIdempotencyModule({ database: dependencies.database, service: idempotency }),
   );
 }

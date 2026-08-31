@@ -49,6 +49,7 @@ test.beforeEach(async ({ page }) => {
           'audit.read',
           'settings.read',
           'settings.manage',
+          'idempotency.read',
         ],
       }),
     });
@@ -153,6 +154,41 @@ test.beforeEach(async ({ page }) => {
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify(detail ? event : { items: [event], page: 1, pageSize: 20, total: 1 }),
+    });
+  });
+  await page.route('**/api/idempotency/records**', async (route) => {
+    const record = {
+      id: '6f54dd84-ca70-4d17-bf80-ffaca336113c',
+      scope: 'account:7f4cc774-403b-4d44-8c43-8f2fb26f0a85',
+      operation: 'orders.create',
+      keyPreview: 'orde…88b592fc',
+      status: 'succeeded',
+      attemptCount: 2,
+      maxAttempts: 3,
+      recoveryCount: 1,
+      actorId: '7f4cc774-403b-4d44-8c43-8f2fb26f0a85',
+      lockedUntil: null,
+      expiresAt: '2026-09-07T08:00:00.000Z',
+      createdAt: '2026-08-31T08:00:00.000Z',
+      updatedAt: '2026-08-31T08:01:00.000Z',
+      completedAt: '2026-08-31T08:01:00.000Z',
+    };
+    const detail = new URL(route.request().url()).pathname.endsWith(record.id);
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(
+        detail
+          ? {
+              ...record,
+              requestHash: 'a'.repeat(64),
+              requestHashVersion: 1,
+              resultStored: true,
+              resultSizeBytes: 48,
+              lastError: null,
+            }
+          : { items: [record], page: 1, pageSize: 20, total: 1 },
+      ),
     });
   });
   let localeSource: 'default' | 'database' = 'default';
@@ -410,6 +446,23 @@ test('manages settings with source visibility, secret protection, and connection
   await expect(page.getByText('连接正常')).toBeVisible();
 });
 
+test('renders read-only idempotency diagnostics without exposing stored results', async ({
+  page,
+}) => {
+  await page.goto('/admin/idempotency');
+  await expect(page.getByRole('heading', { name: '幂等诊断' })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText('orders.create', { exact: true })).toBeVisible();
+  await expect(page.getByText('已成功', { exact: true })).toBeVisible();
+  await expect(page.getByText('诊断页不提供强制成功、删除或重新执行操作')).toBeVisible();
+
+  await page.getByRole('button', { name: '详情' }).click({ force: true });
+  const detail = page.getByRole('dialog', { name: '幂等记录详情' });
+  await expect(detail).toBeVisible();
+  await expect(detail.getByText('Request Hash v1', { exact: true })).toBeVisible();
+  await expect(detail.getByText(/已安全保存（48 bytes），不通过诊断 API 展示/)).toBeVisible();
+  await expect(detail.getByRole('button', { name: /删除|重试|强制成功/ })).toHaveCount(0);
+});
+
 test('hides protected navigation when the account has no matching permission', async ({ page }) => {
   await page.route('**/api/access/permissions', async (route) => {
     await route.fulfill({
@@ -426,4 +479,5 @@ test('hides protected navigation when the account has no matching permission', a
   await expect(page.getByRole('menuitem', { name: /角色与权限/ })).toHaveCount(0);
   await expect(page.getByRole('menuitem', { name: /审计日志/ })).toHaveCount(0);
   await expect(page.getByRole('menuitem', { name: /系统设置/ })).toHaveCount(0);
+  await expect(page.getByRole('menuitem', { name: /幂等诊断/ })).toHaveCount(0);
 });

@@ -31,6 +31,12 @@ export const SYSTEM_PERMISSIONS = [
     description: '配置外部系统集成。',
   },
   { key: 'audit.read', group: '运维治理', name: '查看审计', description: '查看审计日志。' },
+  {
+    key: 'idempotency.read',
+    group: '运维治理',
+    name: '查看幂等记录',
+    description: '查看幂等执行状态和安全诊断摘要。',
+  },
   { key: 'jobs.read', group: '运维治理', name: '查看任务', description: '查看异步任务。' },
   { key: 'jobs.manage', group: '运维治理', name: '管理任务', description: '重试或取消异步任务。' },
   {

@@ -69,6 +69,7 @@ try {
   if (!script.ok || !script.headers.get('content-type')?.includes('javascript')) {
     throw new Error(`Admin asset was not served correctly (${script.status})`);
   }
+  await script.arrayBuffer();
 
   console.log('Admin production static hosting smoke test passed');
 } finally {

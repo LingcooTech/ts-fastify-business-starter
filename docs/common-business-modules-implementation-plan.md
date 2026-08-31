@@ -15,9 +15,10 @@
 - 阶段 2 Access Control：已于 2026-08-30 完成；
 - 阶段 3 Audit：已于 2026-08-31 完成；
 - 阶段 4 Settings：已于 2026-08-31 完成；
+- 阶段 5 Idempotency：已于 2026-08-31 完成；
 - 当前质量门禁：Format、Lint、Typecheck、Unit、Build、Admin Static Smoke、PostgreSQL Migration/Integration 和桌面/移动端 Playwright 均通过；
-- 下一阶段：Idempotency；
-- Idempotency 开始前不并行创建 Jobs 或其他模块骨架。
+- 下一阶段：Jobs；
+- Jobs 完成前不并行创建 Transactional Outbox 或其他模块骨架。
 
 ## 1. 最终决策
 
@@ -868,7 +869,26 @@ Admin 页面：
 
 ### 阶段 5：Idempotency
 
-完成通用幂等执行器和诊断页。
+已完成内容：
+
+1. 以 `(scope, operation, key hash)` 为唯一身份的应用层幂等执行器，以及确定性 JSON Request Hash
+   `v1`；
+2. 原始幂等键和请求体不落库，短 Key 不完整出现在预览，Admin 诊断投影不返回完整 Key Hash、Owner
+   Token 或结果快照；
+3. 短事务 Claim、数据库租约、随机 Owner Token fencing、陈旧执行接管、尝试/恢复计数和受控保留期；
+4. 业务数据库写入、结果 Schema/JSON 往返校验和成功快照共享同一事务，失败时整体回滚；
+5. 相同请求安全重放、不同请求冲突、永久失败重放、瞬时失败受限重试和尝试耗尽后的稳定错误；
+6. 目标过期记录在 Claim 事务内精确释放和重建，批量清理不删除活跃 `processing` 记录；
+7. 默认错误分类及安全的业务分类扩展，畸形或抛错的自定义分类器自动降级；
+8. `idempotency.read` 权限、只读列表/详情 API、Contracts、无 React API Client，以及状态、Scope、
+   Operation、时间和搜索筛选；
+9. Admin 只读诊断页、详情 Drawer、租约/尝试/恢复/安全错误摘要，并明确不提供强制成功、删除、重试和
+   结果查看；
+10. 20 路并发、请求冲突、事务回滚、租约恢复、旧 Owner fencing、JSON 重放一致性、过期键复用、权限
+    和结果隔离的 PostgreSQL 集成测试，以及桌面/移动端 Playwright 和生产静态托管验收。
+
+外部 Provider 副作用不在数据库 exactly-once 承诺内；调用模块必须使用 Provider 幂等键、业务事实和后续
+Transactional Outbox。Jobs 只负责未来的定期清理或观测，不改变本模块的领取和重放语义。
 
 ### 阶段 6：Jobs
 

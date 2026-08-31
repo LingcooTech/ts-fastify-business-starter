@@ -53,6 +53,11 @@ const AuditPage = lazy(() =>
 const SettingsPage = lazy(() =>
   import('../features/settings/SettingsPage').then((module) => ({ default: module.SettingsPage })),
 );
+const IdempotencyPage = lazy(() =>
+  import('../features/idempotency/IdempotencyPage').then((module) => ({
+    default: module.IdempotencyPage,
+  })),
+);
 
 function RouteLoading() {
   return (
@@ -87,6 +92,9 @@ export function AppRouter() {
             </Route>
             <Route element={<RequirePermission permissions={['settings.read']} />}>
               <Route path="settings" element={<SettingsPage />} />
+            </Route>
+            <Route element={<RequirePermission permissions={['idempotency.read']} />}>
+              <Route path="idempotency" element={<IdempotencyPage />} />
             </Route>
             <Route path="forbidden" element={<ForbiddenPage />} />
             <Route path="unauthorized" element={<UnauthorizedPage />} />
