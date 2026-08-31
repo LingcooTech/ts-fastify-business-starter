@@ -9,6 +9,7 @@ import {
   SettingOutlined,
   HistoryOutlined,
   FieldTimeOutlined,
+  SwapOutlined,
 } from '@ant-design/icons';
 import type { PermissionKey } from '@ts-fastify-business-starter/contracts';
 import type { ReactNode } from 'react';
@@ -65,6 +66,13 @@ export const foundationNavigation: AdminNavigationItem[] = [
     path: '/jobs',
     icon: <FieldTimeOutlined />,
     permission: 'jobs.read',
+  },
+  {
+    key: 'outbox',
+    label: 'Outbox 事件',
+    path: '/outbox',
+    icon: <SwapOutlined />,
+    permission: 'outbox.read',
   },
   {
     key: 'account-security',

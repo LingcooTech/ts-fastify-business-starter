@@ -60,6 +60,25 @@ export const environmentSchema = z
       .min(60_000)
       .max(86_400_000)
       .default(3_600_000),
+    OUTBOX_WORKER_ID: optionalEnvironmentValue(
+      z
+        .string()
+        .trim()
+        .regex(/^[A-Za-z0-9._:@/-]+$/)
+        .max(200),
+    ),
+    OUTBOX_POLL_INTERVAL_MS: z.coerce.number().int().min(100).max(60_000).default(1_000),
+    OUTBOX_CONCURRENCY: z.coerce.number().int().min(1).max(50).default(5),
+    OUTBOX_HEARTBEAT_INTERVAL_MS: z.coerce.number().int().min(250).max(300_000).default(10_000),
+    OUTBOX_SHUTDOWN_GRACE_MS: z.coerce.number().int().min(1_000).max(300_000).default(30_000),
+    OUTBOX_STALE_RECOVERY_BATCH: z.coerce.number().int().min(1).max(1_000).default(100),
+    OUTBOX_RETENTION_DAYS: z.coerce.number().int().min(1).max(365).default(30),
+    OUTBOX_MAINTENANCE_INTERVAL_MS: z.coerce
+      .number()
+      .int()
+      .min(60_000)
+      .max(86_400_000)
+      .default(3_600_000),
     AUTH_SESSION_TTL_SECONDS: z.coerce.number().int().min(300).max(2_592_000).default(604_800),
     AUTH_ACTION_TOKEN_TTL_SECONDS: z.coerce.number().int().min(300).max(86_400).default(3600),
     AUTH_COOKIE_NAME: z

@@ -52,6 +52,8 @@ test.beforeEach(async ({ page }) => {
           'idempotency.read',
           'jobs.read',
           'jobs.manage',
+          'outbox.read',
+          'outbox.manage',
         ],
       }),
     });
@@ -258,6 +260,75 @@ test.beforeEach(async ({ page }) => {
               ],
             }
           : { items: [job], page: 1, pageSize: 20, total: 1 },
+      ),
+    });
+  });
+  let outboxStatus: 'dead' | 'pending' = 'dead';
+  let outboxMaxAttempts = 2;
+  let outboxReplayCount = 0;
+  await page.route('**/api/outbox/events**', async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    if (request.method() === 'POST' && url.pathname.endsWith('/actions/replay')) {
+      outboxStatus = 'pending';
+      outboxMaxAttempts += 1;
+      outboxReplayCount += 1;
+    }
+    const event = {
+      id: '8f54dd84-ca70-4d17-bf80-ffaca336113c',
+      topic: 'payments.succeeded',
+      eventVersion: 1,
+      aggregateType: 'payment_intent',
+      aggregateId: 'payment-1001',
+      aggregateVersion: 3,
+      status: outboxStatus,
+      availableAt: '2026-08-31T08:02:00.000Z',
+      attemptCount: 2,
+      maxAttempts: outboxMaxAttempts,
+      recoveryCount: 1,
+      manualReplayCount: outboxReplayCount,
+      deduplicationPreview: 'paym…88b592fc',
+      leaseExpiresAt: null,
+      occurredAt: '2026-08-31T08:00:00.000Z',
+      publishedAt: null,
+      createdAt: '2026-08-31T08:00:00.000Z',
+      updatedAt: '2026-08-31T08:01:00.000Z',
+      canReplay: outboxStatus === 'dead',
+    };
+    const detail = url.pathname === `/api/outbox/events/${event.id}` || request.method() === 'POST';
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(
+        detail
+          ? {
+              ...event,
+              payloadHash: 'c'.repeat(64),
+              payloadSizeBytes: 96,
+              lastError: {
+                code: 'BROKER_UNAVAILABLE',
+                message: '消息代理暂时不可用',
+                statusCode: 503,
+                retryable: false,
+              },
+              attempts: [
+                {
+                  id: '9f54dd84-ca70-4d17-bf80-ffaca336113c',
+                  attemptNumber: 2,
+                  status: 'failed',
+                  startedAt: '2026-08-31T08:00:30.000Z',
+                  heartbeatAt: '2026-08-31T08:00:31.000Z',
+                  finishedAt: '2026-08-31T08:01:00.000Z',
+                  error: {
+                    code: 'BROKER_UNAVAILABLE',
+                    message: '消息代理暂时不可用',
+                    statusCode: 503,
+                    retryable: false,
+                  },
+                },
+              ],
+            }
+          : { items: [event], page: 1, pageSize: 20, total: 1 },
       ),
     });
   });
@@ -558,6 +629,26 @@ test('diagnoses and manually retries jobs without exposing worker internals or p
   await expect(detail.getByText('排队中', { exact: true })).toBeVisible();
 });
 
+test('diagnoses and replays dead outbox events without exposing immutable payloads', async ({
+  page,
+}) => {
+  await page.goto('/admin/outbox');
+  await expect(page.getByRole('heading', { name: 'Outbox 事件' })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText('payments.succeeded', { exact: true })).toBeVisible();
+  await expect(page.getByText('事件事实不可修改，发布语义为 at-least-once')).toBeVisible();
+  await page.getByRole('button', { name: '详情' }).click({ force: true });
+  const detail = page.locator('.outbox-detail-drawer');
+  await expect(detail).toBeVisible();
+  await expect(detail.getByText('Payload Hash', { exact: true })).toBeVisible();
+  await expect(detail.getByText(/claim-token|publisher-test|customer@example\.com/i)).toHaveCount(
+    0,
+  );
+  await detail.getByRole('button', { name: '重放' }).click();
+  await page.getByRole('button', { name: '确认重放' }).click();
+  await expect(page.getByText('Outbox Event 已重新排队')).toBeVisible();
+  await expect(detail.getByText('待发布', { exact: true })).toBeVisible();
+});
+
 test('hides protected navigation when the account has no matching permission', async ({ page }) => {
   await page.route('**/api/access/permissions', async (route) => {
     await route.fulfill({
@@ -576,4 +667,5 @@ test('hides protected navigation when the account has no matching permission', a
   await expect(page.getByRole('menuitem', { name: /系统设置/ })).toHaveCount(0);
   await expect(page.getByRole('menuitem', { name: /幂等诊断/ })).toHaveCount(0);
   await expect(page.getByRole('menuitem', { name: /后台任务/ })).toHaveCount(0);
+  await expect(page.getByRole('menuitem', { name: /Outbox 事件/ })).toHaveCount(0);
 });

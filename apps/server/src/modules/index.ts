@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import type { AppEnvironment } from '../config/environment.js';
 import type { DatabaseHandle } from '../database/database.js';
 import { applicationJobHandlers, applicationRecurringJobs } from '../job-definitions.js';
+import { applicationOutboxEvents } from '../outbox-event-definitions.js';
 import {
   createAccessControlModule,
   createAccessControlService,
@@ -14,6 +15,7 @@ import { createAuditModule, createAuditService } from './audit/public.js';
 import { createSettingsModule, createSettingsService } from './settings/public.js';
 import { createIdempotencyModule, createIdempotencyService } from './idempotency/public.js';
 import { createJobsModule, createJobsService } from './jobs/public.js';
+import { createOutboxModule, createOutboxService } from './outbox/public.js';
 
 export interface ApplicationModuleDependencies {
   environment: AppEnvironment;
@@ -34,6 +36,11 @@ export async function registerApplicationModules(
     audit,
     handlers: applicationJobHandlers,
     recurringJobs: applicationRecurringJobs,
+  });
+  const outbox = createOutboxService({
+    database: dependencies.database,
+    audit,
+    events: applicationOutboxEvents,
   });
   installAccessControlGuard(app, { environment: dependencies.environment, identity, access });
   await app.register(createHealthModule(dependencies));
@@ -60,5 +67,13 @@ export async function registerApplicationModules(
   );
   await app.register(
     createJobsModule({ database: dependencies.database, audit, service: jobs.service }),
+  );
+  await app.register(
+    createOutboxModule({
+      database: dependencies.database,
+      audit,
+      service: outbox.service,
+      adminService: outbox.adminService,
+    }),
   );
 }

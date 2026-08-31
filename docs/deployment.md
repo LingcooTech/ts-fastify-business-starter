@@ -24,6 +24,18 @@ pnpm smoke:docker
 
 复制 `deploy/production.env.example`，至少设置数据库密码、CORS origin、镜像和监听端口。生产默认关闭 API docs，并通过 Caddy 终止 HTTP/HTTPS。
 
+Dockerfile 默认使用官方 `node:24-alpine`、`docker-compose.prod.yml` 默认使用官方 PostgreSQL 和 Caddy
+镜像。网络受限或国内部署时，可在构建和 Compose 环境中覆盖 `NODE_IMAGE`、`POSTGRES_IMAGE`、`CADDY_IMAGE`
+为可访问的镜像缓存或企业镜像仓库；不要修改业务代码或把单一地区镜像写死在 Starter 中。例如本地 Docker
+Smoke 可运行：
+
+```bash
+NODE_IMAGE=mirror.gcr.io/library/node:24-alpine \
+POSTGRES_IMAGE=postgres:17-alpine \
+CADDY_IMAGE=mirror.gcr.io/library/caddy:2-alpine \
+pnpm smoke:docker
+```
+
 容器基线：
 
 - non-root user；

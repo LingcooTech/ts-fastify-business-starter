@@ -911,7 +911,26 @@ Transactional Outbox，不复用 Jobs 表。
 
 ### 阶段 7：Transactional Outbox
 
-完成事务事件、Publisher 和重放管理。
+已完成内容：
+
+1. `outbox_events/outbox_attempts` 状态模型、业务事务强制追加、确定性 Payload/Hash/大小限制，以及数据库
+   Trigger 保护的不可变事件事实；
+2. Event ID、Topic 去重键和 Aggregate Version 三类唯一身份的交叉冲突检测，原始去重键不落库；
+3. 历史 Event Version Schema Registry、最新版本写入，以及一个 Topic 一个 Publisher 的显式注册边界；
+4. `FOR UPDATE SKIP LOCKED` claim、随机 Claim Token fencing、heartbeat、执行 deadline、租约恢复和有界
+   退避/死信；
+5. 同 Aggregate 已存在事件的严格相对顺序，死信阻塞后续版本，并明确版本号由业务聚合事务产生；
+6. 独立 Worker Publisher、AbortSignal、优雅关闭、heartbeat 不确定时中止，以及外部成功/落库失败窗口的
+   at-least-once 语义；
+7. `(consumer,eventId)` Consumer Inbox Receipt 与数据库业务副作用同事务，20 路并发仅执行一次且失败回滚；
+8. `outbox.read/outbox.manage`、安全列表/详情、Attempt 历史、Audit 同事务死信重放和 CSRF 保护；
+9. Contracts、无 React API Client、Admin 筛选/详情/重放/权限交互，不暴露 Payload、Worker、Token 和堆栈；
+10. 事务回滚、20 路追加/领取/消费并发、身份冲突、不可变 Trigger、历史 Schema、deadline、旧 Token
+    fencing、错误脱敏、API 权限/隐私，以及桌面/移动端和 Docker Worker 验收。
+
+Outbox 不提供外部副作用 exactly-once。Publisher 必须使用 Event ID 作为 Provider 幂等键；Consumer Receipt
+不关联会随 Event 清理的外键，以在 Event 保留期结束后继续保存去重记忆。多投递目标需未来单独建模 Delivery，
+不能复用单一 `published` 状态。
 
 ### 阶段 8：Mail
 

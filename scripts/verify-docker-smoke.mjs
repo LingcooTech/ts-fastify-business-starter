@@ -11,8 +11,13 @@ const workdir = await mkdtemp(join(tmpdir(), 'ts-fastify-business-starter-docker
 const envFile = join(workdir, '.env');
 const image = `ts-fastify-business-starter:smoke-${process.pid}`;
 const hostPort = 18093 + (process.pid % 1000);
+const nodeImage = process.env.NODE_IMAGE ?? 'node:24-alpine';
+const postgresImage = process.env.POSTGRES_IMAGE ?? 'postgres:17-alpine';
+const caddyImage = process.env.CADDY_IMAGE ?? 'caddy:2-alpine';
 const env = [
   `APP_IMAGE=${image}`,
+  `POSTGRES_IMAGE=${postgresImage}`,
+  `CADDY_IMAGE=${caddyImage}`,
   'APP_NAME=ts-fastify-business-starter-smoke',
   'APP_VERSION=smoke',
   'CORS_ORIGIN=http://localhost:5173',
@@ -75,18 +80,34 @@ async function waitForWorker(attempts = 20) {
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     const running = composeOutput(['ps', '--status', 'running', '--services']);
     const logs = composeOutput(['logs', '--no-color', 'worker']);
-    if (running.split('\n').includes('worker') && logs.includes('job worker ready')) return;
-    if (attempt === attempts) throw new Error('Docker Worker did not enter the Jobs polling loop');
+    if (
+      running.split('\n').includes('worker') &&
+      logs.includes('job worker ready') &&
+      logs.includes('outbox publisher ready')
+    )
+      return;
+    if (attempt === attempts)
+      throw new Error('Docker Worker did not enter the Jobs and Outbox polling loops');
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 1_000));
   }
 }
 
 try {
   await writeFile(envFile, `${env}\n`);
-  execFileSync('docker', ['build', '--tag', image, '--build-arg', 'APP_VERSION=smoke', '.'], {
-    cwd: root,
-    stdio: 'inherit',
-  });
+  execFileSync(
+    'docker',
+    [
+      'build',
+      '--tag',
+      image,
+      '--build-arg',
+      'APP_VERSION=smoke',
+      '--build-arg',
+      `NODE_IMAGE=${nodeImage}`,
+      '.',
+    ],
+    { cwd: root, stdio: 'inherit' },
+  );
   compose(['up', '-d', '--wait', 'postgres']);
   const migrationCommand = [
     'run',

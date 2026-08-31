@@ -426,6 +426,12 @@ body {
   gap: 0 16px;
 }
 
+.outbox-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0 16px;
+}
+
 @media (max-width: 767px) {
   .setting-row {
     grid-template-columns: 1fr;

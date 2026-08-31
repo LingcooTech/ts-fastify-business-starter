@@ -39,6 +39,13 @@ export const SYSTEM_PERMISSIONS = [
   },
   { key: 'jobs.read', group: '运维治理', name: '查看任务', description: '查看异步任务。' },
   { key: 'jobs.manage', group: '运维治理', name: '管理任务', description: '重试或取消异步任务。' },
+  { key: 'outbox.read', group: '运维治理', name: '查看事件', description: '查看 Outbox 事件。' },
+  {
+    key: 'outbox.manage',
+    group: '运维治理',
+    name: '管理事件',
+    description: '重放死信 Outbox 事件。',
+  },
   {
     key: 'payments.read',
     group: '业务能力',

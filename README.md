@@ -96,6 +96,7 @@ pnpm e2e
 - [Settings](docs/settings.md)
 - [Idempotency](docs/idempotency.md)
 - [Jobs](docs/jobs.md)
+- [Transactional Outbox](docs/outbox.md)
 
 ## 实施边界
 

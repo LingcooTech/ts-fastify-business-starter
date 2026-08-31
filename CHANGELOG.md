@@ -24,3 +24,6 @@
 - Added PostgreSQL Jobs with transactional enqueue, SKIP LOCKED claims, random claim-token fencing,
   heartbeat and stale recovery, bounded retry/dead-letter handling, recurring time-bucket dedupe,
   a standalone Worker process, safe diagnostics, audited manual actions, and responsive Admin UI.
+- Added Transactional Outbox with transaction-required append, immutable versioned event facts,
+  aggregate ordering, fenced Publisher recovery, bounded dead-letter replay, Consumer Inbox
+  deduplication, safe diagnostics, and responsive Admin UI.

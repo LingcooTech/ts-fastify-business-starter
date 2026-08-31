@@ -61,6 +61,9 @@ const IdempotencyPage = lazy(() =>
 const JobsPage = lazy(() =>
   import('../features/jobs/JobsPage').then((module) => ({ default: module.JobsPage })),
 );
+const OutboxPage = lazy(() =>
+  import('../features/outbox/OutboxPage').then((module) => ({ default: module.OutboxPage })),
+);
 
 function RouteLoading() {
   return (
@@ -101,6 +104,9 @@ export function AppRouter() {
             </Route>
             <Route element={<RequirePermission permissions={['jobs.read']} />}>
               <Route path="jobs" element={<JobsPage />} />
+            </Route>
+            <Route element={<RequirePermission permissions={['outbox.read']} />}>
+              <Route path="outbox" element={<OutboxPage />} />
             </Route>
             <Route path="forbidden" element={<ForbiddenPage />} />
             <Route path="unauthorized" element={<UnauthorizedPage />} />
