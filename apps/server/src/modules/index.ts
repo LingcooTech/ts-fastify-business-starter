@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 
 import type { AppEnvironment } from '../config/environment.js';
 import type { DatabaseHandle } from '../database/database.js';
+import { applicationJobHandlers, applicationRecurringJobs } from '../job-definitions.js';
 import {
   createAccessControlModule,
   createAccessControlService,
@@ -12,6 +13,7 @@ import { createIdentityModule, createIdentityService } from './identity/plugin.j
 import { createAuditModule, createAuditService } from './audit/public.js';
 import { createSettingsModule, createSettingsService } from './settings/public.js';
 import { createIdempotencyModule, createIdempotencyService } from './idempotency/public.js';
+import { createJobsModule, createJobsService } from './jobs/public.js';
 
 export interface ApplicationModuleDependencies {
   environment: AppEnvironment;
@@ -27,6 +29,12 @@ export async function registerApplicationModules(
   const access = createAccessControlService({ database: dependencies.database, identity, audit });
   const settings = createSettingsService({ ...dependencies, audit });
   const idempotency = createIdempotencyService(dependencies);
+  const jobs = createJobsService({
+    database: dependencies.database,
+    audit,
+    handlers: applicationJobHandlers,
+    recurringJobs: applicationRecurringJobs,
+  });
   installAccessControlGuard(app, { environment: dependencies.environment, identity, access });
   await app.register(createHealthModule(dependencies));
   await app.register(createIdentityModule({ ...dependencies, audit, service: identity }));
@@ -49,5 +57,8 @@ export async function registerApplicationModules(
   );
   await app.register(
     createIdempotencyModule({ database: dependencies.database, service: idempotency }),
+  );
+  await app.register(
+    createJobsModule({ database: dependencies.database, audit, service: jobs.service }),
   );
 }

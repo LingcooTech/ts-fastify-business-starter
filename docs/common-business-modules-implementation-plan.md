@@ -892,7 +892,22 @@ Transactional Outbox。Jobs 只负责未来的定期清理或观测，不改变�
 
 ### 阶段 6：Jobs
 
-完成 PostgreSQL Jobs、Worker 和管理页。
+已完成内容：
+
+1. PostgreSQL `jobs/job_attempts` 双表模型、事务入队、Payload Schema/确定性 JSON/Hash/大小限制；
+2. 原始去重键不落库，同类型并发入队使用数据库唯一约束去重，不同 Payload 冲突拒绝；
+3. `FOR UPDATE SKIP LOCKED` claim、随机 Claim Token fencing、heartbeat、执行 deadline 和租约恢复；
+4. at-least-once Handler、AbortSignal、受限指数退避、永久失败、尝试耗尽和 Dead Letter；
+5. 轻量固定间隔周期任务的时间桶去重，不引入 Redis 或额外 Cron 服务；
+6. 独立 Worker 进程、并发/轮询/维护/保留期配置、优雅关闭与 heartbeat 不确定时中止；
+7. `jobs.read/jobs.manage`、安全列表/详情、Audit 同事务的取消与手动重试；
+8. 无 React API Client、Admin 筛选/详情/Attempt 历史/权限动作，且不暴露 Payload、Worker、Token 和堆栈；
+9. 20 路入队和领取并发、事务回滚、heartbeat、过期恢复、旧 Token fencing、退避/死信、Audit 回滚、
+   Runner 超时/所有权丢失及桌面/移动端 Playwright 验收；
+10. 生产 Compose Worker 进入真实轮询循环的 Docker Smoke 检查与完整运维文档。
+
+Jobs 保持应用内部异步命令边界。同步请求重放仍属于 Idempotency；不可变业务事件和外部可靠发布留给下一阶段
+Transactional Outbox，不复用 Jobs 表。
 
 ### 阶段 7：Transactional Outbox
 

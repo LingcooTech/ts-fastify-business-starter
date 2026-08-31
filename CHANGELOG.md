@@ -21,3 +21,6 @@
 - Added the transactional Idempotency module with canonical request hashing, lease recovery and
   fencing, bounded result replay, retry classification, read-only diagnostics, and responsive Admin
   visibility.
+- Added PostgreSQL Jobs with transactional enqueue, SKIP LOCKED claims, random claim-token fencing,
+  heartbeat and stale recovery, bounded retry/dead-letter handling, recurring time-bucket dedupe,
+  a standalone Worker process, safe diagnostics, audited manual actions, and responsive Admin UI.

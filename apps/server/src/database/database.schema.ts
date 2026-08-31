@@ -4,3 +4,4 @@ export * from '../modules/access-control/infrastructure/persistence/access-contr
 export * from '../modules/audit/infrastructure/persistence/audit.schema.js';
 export * from '../modules/settings/infrastructure/persistence/settings.schema.js';
 export * from '../modules/idempotency/infrastructure/persistence/idempotency.schema.js';
+export * from '../modules/jobs/infrastructure/persistence/jobs.schema.js';

@@ -95,6 +95,7 @@ pnpm e2e
 - [Audit](docs/audit.md)
 - [Settings](docs/settings.md)
 - [Idempotency](docs/idempotency.md)
+- [Jobs](docs/jobs.md)
 
 ## 实施边界
 

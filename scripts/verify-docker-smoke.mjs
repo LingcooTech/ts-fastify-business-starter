@@ -50,6 +50,14 @@ function compose(args) {
   );
 }
 
+function composeOutput(args) {
+  return execFileSync(
+    'docker',
+    ['compose', '-p', project, '-f', 'docker-compose.prod.yml', '--env-file', envFile, ...args],
+    { cwd: root, encoding: 'utf8' },
+  );
+}
+
 async function waitForReady(url, attempts = 30) {
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
@@ -60,6 +68,16 @@ async function waitForReady(url, attempts = 30) {
         throw new Error(`Docker smoke endpoint did not become ready: ${url}`);
       await new Promise((resolveDelay) => setTimeout(resolveDelay, 2_000));
     }
+  }
+}
+
+async function waitForWorker(attempts = 20) {
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const running = composeOutput(['ps', '--status', 'running', '--services']);
+    const logs = composeOutput(['logs', '--no-color', 'worker']);
+    if (running.split('\n').includes('worker') && logs.includes('job worker ready')) return;
+    if (attempt === attempts) throw new Error('Docker Worker did not enter the Jobs polling loop');
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, 1_000));
   }
 }
 
@@ -92,6 +110,7 @@ try {
   compose(bootstrapCommand);
   compose(['up', '-d', 'api', 'worker', 'caddy']);
   await waitForReady(`http://127.0.0.1:${hostPort}/health/ready`);
+  await waitForWorker();
   execFileSync('curl', ['-fsS', `http://127.0.0.1:${hostPort}/health/live`], { stdio: 'inherit' });
   execFileSync('curl', ['-fsS', `http://127.0.0.1:${hostPort}/`], { stdio: 'ignore' });
   execFileSync('curl', ['-fsS', `http://127.0.0.1:${hostPort}/admin/`], { stdio: 'ignore' });

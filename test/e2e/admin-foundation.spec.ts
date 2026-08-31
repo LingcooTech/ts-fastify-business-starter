@@ -50,6 +50,8 @@ test.beforeEach(async ({ page }) => {
           'settings.read',
           'settings.manage',
           'idempotency.read',
+          'jobs.read',
+          'jobs.manage',
         ],
       }),
     });
@@ -188,6 +190,74 @@ test.beforeEach(async ({ page }) => {
               lastError: null,
             }
           : { items: [record], page: 1, pageSize: 20, total: 1 },
+      ),
+    });
+  });
+  let jobStatus: 'dead' | 'queued' = 'dead';
+  let jobMaxAttempts = 2;
+  let jobManualRetries = 0;
+  await page.route('**/api/jobs**', async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    if (request.method() === 'POST' && url.pathname.endsWith('/actions/retry')) {
+      jobStatus = 'queued';
+      jobMaxAttempts += 1;
+      jobManualRetries += 1;
+    }
+    const job = {
+      id: '2f54dd84-ca70-4d17-bf80-ffaca336113c',
+      type: 'notifications.email-send',
+      queue: 'default',
+      status: jobStatus,
+      priority: 10,
+      runAt: '2026-08-31T08:02:00.000Z',
+      attemptCount: 2,
+      maxAttempts: jobMaxAttempts,
+      recoveryCount: 1,
+      manualRetryCount: jobManualRetries,
+      deduplicationPreview: 'orde…88b592fc',
+      leaseExpiresAt: null,
+      createdAt: '2026-08-31T08:00:00.000Z',
+      updatedAt: '2026-08-31T08:01:00.000Z',
+      completedAt: jobStatus === 'dead' ? '2026-08-31T08:01:00.000Z' : null,
+      canRetry: jobStatus === 'dead',
+      canCancel: jobStatus === 'queued',
+    };
+    const detail = url.pathname === `/api/jobs/${job.id}` || request.method() === 'POST';
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(
+        detail
+          ? {
+              ...job,
+              payloadHash: 'b'.repeat(64),
+              payloadVersion: 1,
+              payloadSizeBytes: 128,
+              lastError: {
+                code: 'EMAIL_PROVIDER_UNAVAILABLE',
+                message: '邮件服务暂时不可用',
+                statusCode: 503,
+                retryable: false,
+              },
+              attempts: [
+                {
+                  id: '4f54dd84-ca70-4d17-bf80-ffaca336113c',
+                  attemptNumber: 2,
+                  status: 'failed',
+                  startedAt: '2026-08-31T08:00:30.000Z',
+                  heartbeatAt: '2026-08-31T08:00:31.000Z',
+                  finishedAt: '2026-08-31T08:01:00.000Z',
+                  error: {
+                    code: 'EMAIL_PROVIDER_UNAVAILABLE',
+                    message: '邮件服务暂时不可用',
+                    statusCode: 503,
+                    retryable: false,
+                  },
+                },
+              ],
+            }
+          : { items: [job], page: 1, pageSize: 20, total: 1 },
       ),
     });
   });
@@ -464,6 +534,30 @@ test('renders read-only idempotency diagnostics without exposing stored results'
   await expect(detail.getByRole('button', { name: /删除|重试|强制成功/ })).toHaveCount(0);
 });
 
+test('diagnoses and manually retries jobs without exposing worker internals or payloads', async ({
+  page,
+}) => {
+  await page.goto('/admin/jobs');
+  await expect(page.getByRole('heading', { name: '后台任务' })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText('notifications.email-send', { exact: true })).toBeVisible();
+  await expect(page.getByText('死信', { exact: true })).toBeVisible();
+  await expect(page.getByText('诊断接口不会返回 Payload、Worker ID 或 Claim Token')).toBeVisible();
+
+  await page.getByRole('button', { name: '详情' }).click({ force: true });
+  const detail = page.locator('.job-detail-drawer');
+  await expect(detail).toBeVisible();
+  await expect(detail.getByText('Payload Hash', { exact: true })).toBeVisible();
+  await expect(
+    detail.getByText('EMAIL_PROVIDER_UNAVAILABLE', { exact: false }).first(),
+  ).toBeVisible();
+  await expect(detail.getByText(/worker-test|claim-token|customer@example\.com/i)).toHaveCount(0);
+
+  await detail.getByRole('button', { name: '重试' }).click();
+  await page.getByRole('button', { name: '确认重试' }).click();
+  await expect(page.getByText('Job 已重新入队')).toBeVisible();
+  await expect(detail.getByText('排队中', { exact: true })).toBeVisible();
+});
+
 test('hides protected navigation when the account has no matching permission', async ({ page }) => {
   await page.route('**/api/access/permissions', async (route) => {
     await route.fulfill({
@@ -481,4 +575,5 @@ test('hides protected navigation when the account has no matching permission', a
   await expect(page.getByRole('menuitem', { name: /审计日志/ })).toHaveCount(0);
   await expect(page.getByRole('menuitem', { name: /系统设置/ })).toHaveCount(0);
   await expect(page.getByRole('menuitem', { name: /幂等诊断/ })).toHaveCount(0);
+  await expect(page.getByRole('menuitem', { name: /后台任务/ })).toHaveCount(0);
 });

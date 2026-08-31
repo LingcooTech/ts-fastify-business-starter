@@ -8,6 +8,7 @@ import {
   FileSearchOutlined,
   SettingOutlined,
   HistoryOutlined,
+  FieldTimeOutlined,
 } from '@ant-design/icons';
 import type { PermissionKey } from '@ts-fastify-business-starter/contracts';
 import type { ReactNode } from 'react';
@@ -57,6 +58,13 @@ export const foundationNavigation: AdminNavigationItem[] = [
     path: '/idempotency',
     icon: <HistoryOutlined />,
     permission: 'idempotency.read',
+  },
+  {
+    key: 'jobs',
+    label: '后台任务',
+    path: '/jobs',
+    icon: <FieldTimeOutlined />,
+    permission: 'jobs.read',
   },
   {
     key: 'account-security',

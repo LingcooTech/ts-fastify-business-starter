@@ -43,6 +43,13 @@
       "when": 1788143652634,
       "tag": "0005_misty_sandman",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788151028261,
+      "tag": "0006_ancient_black_bolt",
+      "breakpoints": true
     }
   ]
 }
