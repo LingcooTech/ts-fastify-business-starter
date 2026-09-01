@@ -114,7 +114,13 @@ function DeliveryDrawer({ id, onClose }: { id: string | null; onClose(): void })
   const result = useMailDelivery(id);
   const item = result.data;
   return (
-    <Drawer title="邮件投递详情" size={720} open={Boolean(id)} onClose={onClose}>
+    <Drawer
+      title="邮件投递详情"
+      size={720}
+      open={Boolean(id)}
+      onClose={onClose}
+      className="mail-delivery-detail-drawer"
+    >
       <AsyncState loading={result.isPending} error={result.error}>
         {item && (
           <Space orientation="vertical" size="large" style={{ width: '100%' }}>

@@ -735,7 +735,8 @@ test('manages safe mail templates, deliveries, and queued test mail', async ({ p
   await expect(page.getByText('identity.password-reset', { exact: true })).toBeVisible();
   await expect(page.getByText('o***@example.com', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '详情' }).click({ force: true });
-  const drawer = page.getByRole('dialog', { name: '邮件投递详情' });
+  const drawer = page.locator('.mail-delivery-detail-drawer');
+  await expect(drawer).toBeVisible();
   await expect(drawer.getByText('MAIL_SMTP_REJECTED', { exact: false })).toBeVisible();
   await expect(drawer.getByText(/top-secret|owner@example\.com|<html>/i)).toHaveCount(0);
   await page.keyboard.press('Escape');
