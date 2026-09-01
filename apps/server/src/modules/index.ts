@@ -37,6 +37,7 @@ import {
   createStorageRuntime,
   STORAGE_SETTINGS,
 } from './storage/public.js';
+import { createBrandingModule, createBrandingService } from './branding/public.js';
 
 export interface ApplicationModuleDependencies {
   environment: AppEnvironment;
@@ -81,6 +82,12 @@ export async function registerApplicationModules(
     ...dependencies,
     settings: settings.service,
     jobs: jobs.service,
+    audit,
+  });
+  const branding = createBrandingService({
+    ...dependencies,
+    assets: storage.library,
+    references: storage.references,
     audit,
   });
   jobs.registry.register(storage.maintenance.deleteObjectJobHandler);
@@ -160,6 +167,15 @@ export async function registerApplicationModules(
       jobs: jobs.service,
       audit,
       runtime: storage,
+    }),
+  );
+  await app.register(
+    createBrandingModule({
+      ...dependencies,
+      assets: storage.library,
+      references: storage.references,
+      audit,
+      service: branding,
     }),
   );
 }

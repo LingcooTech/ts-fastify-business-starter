@@ -56,6 +56,11 @@ export interface AssetReferenceInput {
   createdBy?: string | null;
 }
 
+export interface AssetReferencePolicy {
+  mediaKind?: AssetMediaKind;
+  visibility?: AssetVisibility;
+}
+
 export interface ReadableAsset {
   id: string;
   visibility: AssetVisibility;

@@ -20,6 +20,9 @@ Storage 模块提供一套与业务领域无关的素材库，支持本地磁盘
 4. 校验成功后在事务中切换 Asset 当前版本，旧对象进入异步删除；
 5. 重复完成同一 Object 是幂等操作，历史版本事实不被后续替换覆盖。
 
+同一个 Asset ID 的媒体大类不可改变：image 只能替换为 image，document 只能替换为 document，text 只能替换为
+text。业务可以安全地把稳定 Asset ID 用于 Logo、图片或文档字段，而不会在后续替换时静默改变字段语义。
+
 当前通用白名单为 JPEG、PNG、GIF、WebP、AVIF、PDF、UTF-8 TXT 和 CSV。SVG、HTML、视频、压缩包和可执行内容不进入 Starter。病毒扫描、图片裁切、转码和行业专用媒体编排应由具体应用按需扩展。
 
 ## 删除与清理

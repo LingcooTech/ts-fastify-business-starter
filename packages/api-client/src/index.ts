@@ -10,3 +10,4 @@ export * from './outbox.js';
 export * from './mail.js';
 export * from './notifications.js';
 export * from './storage.js';
+export * from './branding.js';

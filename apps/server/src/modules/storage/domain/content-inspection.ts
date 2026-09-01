@@ -28,11 +28,13 @@ const MIME_ALIASES: Readonly<Record<string, string>> = {
   'application/csv': 'text/csv',
 };
 
-export function assertDeclaredAssetType(contentType: string): void {
+export function assertDeclaredAssetType(contentType: string): InspectedAssetContent['mediaKind'] {
   const canonical = MIME_ALIASES[contentType] ?? contentType;
-  if (!BINARY_TYPES[canonical] && !TEXT_TYPES[canonical]) {
+  const binary = BINARY_TYPES[canonical];
+  if (!binary && !TEXT_TYPES[canonical]) {
     throw new ApiError(415, 'STORAGE_CONTENT_TYPE_REJECTED', '文件声明类型不受支持');
   }
+  return binary?.mediaKind ?? 'text';
 }
 
 export async function inspectAssetContent(input: {

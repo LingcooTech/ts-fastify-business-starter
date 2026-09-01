@@ -30,6 +30,9 @@ Settings 管理当前单体部署的应用级运行参数。它不包含 SaaS �
 `application.locale` 和 `application.timezone`。Starter 不提前注册 SMTP、对象存储或支付参数。
 Secret 不允许在代码中声明默认明文；Select 的每个选项也必须通过对应设置 Schema。
 
+其中 `application.name` 是运行时服务标识和系统通知名称；Admin 界面名称、Logo、Favicon、主题色与登录文案由
+Application Branding 聚合统一管理，避免把带 Asset Reference 的多字段业务配置拆成独立 Settings Key。
+
 ## 数据与加密
 
 `system_settings` 每个 Key 只保存一种载荷：普通设置写入 `value_json`；Secret 写入 AES-256-GCM 加密

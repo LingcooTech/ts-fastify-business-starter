@@ -94,6 +94,18 @@ export const SYSTEM_PERMISSIONS = [
     name: '管理文件',
     description: '上传、删除和管理文件对象。',
   },
+  {
+    key: 'branding.read',
+    group: '系统设置',
+    name: '查看应用品牌',
+    description: '查看应用名称、主题和品牌素材配置。',
+  },
+  {
+    key: 'branding.manage',
+    group: '系统设置',
+    name: '管理应用品牌',
+    description: '修改应用展示名称、主题、登录文案及品牌素材。',
+  },
 ] satisfies ReadonlyArray<Omit<PermissionDefinition, 'source'>>;
 
 export const CORE_PERMISSION_DEFINITIONS: PermissionDefinition[] = SYSTEM_PERMISSIONS.map(

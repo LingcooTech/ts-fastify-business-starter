@@ -54,14 +54,26 @@ body {
   white-space: nowrap;
 }
 
-.admin-brand__mark {
+.brand-mark {
   display: grid;
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 12px;
+  place-items: center;
+  border-radius: 15px;
+  background: linear-gradient(135deg, #1677ff, #69b1ff);
+  box-shadow: 0 12px 32px rgba(22, 119, 255, 0.3);
+  color: white;
+  object-fit: contain;
+  font-weight: 800;
+}
+
+.brand-mark--compact {
   width: 32px;
   height: 32px;
   flex: 0 0 32px;
-  place-items: center;
+  margin: 0;
   border-radius: 9px;
-  background: linear-gradient(135deg, #1677ff, #69b1ff);
   box-shadow: 0 8px 24px rgba(22, 119, 255, 0.35);
   font-size: 13px;
 }
@@ -230,19 +242,6 @@ body {
 
 .identity-heading .ant-typography {
   margin: 0 !important;
-}
-
-.identity-logo {
-  display: grid;
-  width: 52px;
-  height: 52px;
-  margin: 0 auto 12px;
-  place-items: center;
-  border-radius: 15px;
-  background: linear-gradient(135deg, #1677ff, #69b1ff);
-  box-shadow: 0 12px 32px rgba(22, 119, 255, 0.3);
-  color: white;
-  font-weight: 800;
 }
 
 .identity-card .ant-alert {
@@ -432,9 +431,81 @@ body {
   gap: 0 16px;
 }
 
+.branding-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.9fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.branding-preview-card {
+  position: sticky;
+  top: 84px;
+}
+
+.branding-preview {
+  display: grid;
+  gap: 24px;
+  padding: 20px;
+  border: 1px solid color-mix(in srgb, var(--branding-preview-color) 24%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--branding-preview-color) 5%, transparent);
+}
+
+.branding-preview__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.branding-preview__header .ant-image,
+.branding-preview__header > span:first-child {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--branding-preview-color);
+  color: #fff;
+  object-fit: contain;
+  font-weight: 700;
+}
+
+.branding-preview__header img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.branding-preview__login {
+  padding: 24px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 12px 36px rgba(15, 35, 65, 0.08);
+  text-align: center;
+}
+
+:root[data-theme='dark'] .branding-preview__login {
+  background: rgba(20, 20, 20, 0.82);
+}
+
+.branding-preview__login .ant-btn-primary {
+  margin-top: 20px;
+  border-color: var(--branding-preview-color);
+  background: var(--branding-preview-color);
+}
+
 @media (max-width: 767px) {
   .setting-row {
     grid-template-columns: 1fr;
     gap: 14px;
+  }
+
+  .branding-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .branding-preview-card {
+    position: static;
   }
 }

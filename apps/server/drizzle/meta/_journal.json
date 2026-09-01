@@ -85,6 +85,13 @@
       "when": 1788257555430,
       "tag": "0011_keen_nighthawk",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1788304212923,
+      "tag": "0012_rich_barracuda",
+      "breakpoints": true
     }
   ]
 }

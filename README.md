@@ -100,6 +100,7 @@ pnpm e2e
 - [Mail](docs/mail.md)
 - [Notifications](docs/notifications.md)
 - [Storage 与 Asset Management](docs/storage.md)
+- [Application Branding](docs/branding.md)
 
 ## 实施边界
 

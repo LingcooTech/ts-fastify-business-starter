@@ -195,6 +195,19 @@ suite('storage PostgreSQL integration', () => {
     });
     expect(publicMissing.statusCode).toBe(404);
 
+    const wrongMediaReplacement = await authorize(
+      {
+        filename: 'logo.png',
+        contentType: 'image/png',
+        sizeBytes: 68,
+        expectedRevision: uploaded.json().revision,
+      },
+      'storage-replace-wrong-media-0001',
+      uploaded.json().id,
+    );
+    expect(wrongMediaReplacement.statusCode).toBe(415);
+    expect(wrongMediaReplacement.json().error.code).toBe('STORAGE_MEDIA_KIND_MISMATCH');
+
     const replacement = await authorize(
       {
         filename: 'hello.txt',

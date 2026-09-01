@@ -6,6 +6,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { BrowserRouter } from 'react-router-dom';
 
 import { AppCrashPage } from '../routes/error-pages';
+import { BrandingProvider, useBranding } from '../features/branding';
 import { createAppQueryClient } from './query-client';
 import { ThemeModeContext } from './theme-context';
 
@@ -28,26 +29,35 @@ export function AppProviders({ children }: { children: ReactNode }) {
         <AppCrashPage error={error} onReset={resetErrorBoundary} />
       )}
     >
-      <ThemeModeContext.Provider value={themeMode}>
-        <ConfigProvider
-          locale={zhCN}
-          theme={{
-            algorithm: mode === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
-            token: {
-              colorPrimary: '#1677ff',
-              borderRadius: 8,
-              fontFamily:
-                "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-            },
-          }}
-        >
-          <AntApp>
-            <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <BrandingProvider>
+          <ThemeModeContext.Provider value={themeMode}>
+            <BrandedAntDesign mode={mode}>
               <BrowserRouter basename="/admin">{children}</BrowserRouter>
-            </QueryClientProvider>
-          </AntApp>
-        </ConfigProvider>
-      </ThemeModeContext.Provider>
+            </BrandedAntDesign>
+          </ThemeModeContext.Provider>
+        </BrandingProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
+  );
+}
+
+function BrandedAntDesign({ mode, children }: { mode: 'light' | 'dark'; children: ReactNode }) {
+  const branding = useBranding();
+  return (
+    <ConfigProvider
+      locale={zhCN}
+      theme={{
+        algorithm: mode === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+        token: {
+          colorPrimary: branding.primaryColor,
+          borderRadius: 8,
+          fontFamily:
+            "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        },
+      }}
+    >
+      <AntApp>{children}</AntApp>
+    </ConfigProvider>
   );
 }

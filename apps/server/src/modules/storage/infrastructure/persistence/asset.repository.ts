@@ -253,6 +253,45 @@ export class AssetRepository {
       });
   }
 
+  async findReference(
+    ownerType: string,
+    ownerId: string,
+    field: string,
+    executor: DatabaseExecutor = this.database.db,
+  ) {
+    const [record] = await executor
+      .select()
+      .from(storageAssetReferences)
+      .where(
+        and(
+          eq(storageAssetReferences.ownerType, ownerType),
+          eq(storageAssetReferences.ownerId, ownerId),
+          eq(storageAssetReferences.field, field),
+        ),
+      )
+      .limit(1);
+    return record ?? null;
+  }
+
+  async findReferences(
+    ownerType: string,
+    ownerId: string,
+    fields: string[],
+    executor: DatabaseExecutor = this.database.db,
+  ) {
+    if (fields.length === 0) return [];
+    return executor
+      .select()
+      .from(storageAssetReferences)
+      .where(
+        and(
+          eq(storageAssetReferences.ownerType, ownerType),
+          eq(storageAssetReferences.ownerId, ownerId),
+          inArray(storageAssetReferences.field, fields),
+        ),
+      );
+  }
+
   async clearReference(
     ownerType: string,
     ownerId: string,

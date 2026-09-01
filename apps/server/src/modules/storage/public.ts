@@ -3,6 +3,7 @@ export { AssetReferenceService } from './application/asset-reference.service.js'
 export { AssetUploadService } from './application/asset-upload.service.js';
 export type {
   AssetReferenceInput,
+  AssetReferencePolicy,
   ReadableAsset,
   StorageProviderResolver,
 } from './domain/model.js';

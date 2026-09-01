@@ -77,6 +77,11 @@ const AssetLibraryPage = lazy(() =>
     default: module.AssetLibraryPage,
   })),
 );
+const BrandingPage = lazy(() =>
+  import('../features/branding/BrandingPage').then((module) => ({
+    default: module.BrandingPage,
+  })),
+);
 
 function RouteLoading() {
   return (
@@ -127,6 +132,9 @@ export function AppRouter() {
             <Route path="notifications" element={<NotificationsPage />} />
             <Route element={<RequirePermission permissions={['storage.read']} />}>
               <Route path="storage" element={<AssetLibraryPage />} />
+            </Route>
+            <Route element={<RequirePermission permissions={['branding.read']} />}>
+              <Route path="branding" element={<BrandingPage />} />
             </Route>
             <Route path="forbidden" element={<ForbiddenPage />} />
             <Route path="unauthorized" element={<UnauthorizedPage />} />

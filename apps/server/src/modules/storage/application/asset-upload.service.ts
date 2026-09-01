@@ -56,7 +56,7 @@ export class AssetUploadService {
     if (input.sizeBytes > this.environment.STORAGE_MAX_UPLOAD_BYTES) {
       throw new ApiError(413, 'STORAGE_FILE_TOO_LARGE', '文件超过系统允许的大小');
     }
-    assertDeclaredAssetType(input.contentType);
+    const declaredMediaKind = assertDeclaredAssetType(input.contentType);
     const deduplicationHash = storageDigest({ actorId: context.actorId, idempotencyKey });
     const requestHash = storageDigest({ input, replacingAssetId });
     const reservation = await this.database.transaction(async (transaction) => {
@@ -82,6 +82,13 @@ export class AssetUploadService {
         const current = await this.assets.lock(replacingAssetId, transaction);
         if (!current || current.status === 'deleted') {
           throw new ApiError(404, 'STORAGE_ASSET_NOT_FOUND', '素材不存在');
+        }
+        if (current.mediaKind && current.mediaKind !== declaredMediaKind) {
+          throw new ApiError(
+            415,
+            'STORAGE_MEDIA_KIND_MISMATCH',
+            '替换文件必须保持原素材的媒体类型',
+          );
         }
         const expectedRevision = (input as AuthorizeAssetReplacementRequest).expectedRevision;
         version = current.currentVersion + 1;

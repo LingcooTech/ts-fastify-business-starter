@@ -60,6 +60,8 @@ test.beforeEach(async ({ page }) => {
           'notifications.manage',
           'storage.read',
           'storage.manage',
+          'branding.read',
+          'branding.manage',
         ],
       }),
     });
@@ -537,9 +539,32 @@ test.beforeEach(async ({ page }) => {
     updatedAt: '2026-09-01T08:00:00.000Z',
     deletedAt: null,
   });
+  const brandingAsset = () => ({
+    ...storageAsset('品牌 Logo'),
+    id: 'df54dd84-ca70-4d17-bf80-ffaca336113c',
+    mediaKind: 'image',
+    altText: '品牌标识',
+    originalName: 'logo.png',
+    contentType: 'image/png',
+    extension: 'png',
+    sizeBytes: 68,
+    checksumSha256: 'd'.repeat(64),
+    contentUrl: '/api/storage/assets/df54dd84-ca70-4d17-bf80-ffaca336113c/content',
+  });
   await page.route('**/api/storage/**', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
+    if (url.pathname.endsWith('/content') && request.method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'image/png',
+        body: Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+          'base64',
+        ),
+      });
+      return;
+    }
     if (url.pathname.endsWith('/content') && request.method() === 'POST') {
       storageRevision += 1;
       await route.fulfill({
@@ -587,32 +612,93 @@ test.beforeEach(async ({ page }) => {
       return;
     }
     const detail = url.pathname === `/api/storage/assets/${storageAsset().id}`;
+    const brandingDetail = url.pathname === `/api/storage/assets/${brandingAsset().id}`;
+    const selectedAsset = brandingDetail ? brandingAsset() : storageAsset();
+    const listAsset =
+      url.searchParams.get('mediaKind') === 'image' ? brandingAsset() : storageAsset();
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify(
-        detail
+        detail || brandingDetail
           ? {
-              ...storageAsset(),
+              ...selectedAsset,
               versions: [
                 {
                   id: 'ff54dd84-ca70-4d17-bf80-ffaca336113c',
                   version: 1,
                   provider: 'local',
                   status: 'ready',
-                  originalName: '品牌说明.txt',
-                  contentType: 'text/plain',
-                  extension: 'txt',
-                  sizeBytes: 12,
-                  checksumSha256: 'e'.repeat(64),
+                  originalName: selectedAsset.originalName,
+                  contentType: selectedAsset.contentType,
+                  extension: selectedAsset.extension,
+                  sizeBytes: selectedAsset.sizeBytes,
+                  checksumSha256: selectedAsset.checksumSha256,
                   createdAt: '2026-09-01T08:00:00.000Z',
                   readyAt: '2026-09-01T08:00:00.000Z',
                   deletedAt: null,
                 },
               ],
             }
-          : { items: [storageAsset()], page: 1, pageSize: 20, total: 1 },
+          : { items: [listAsset], page: 1, pageSize: 20, total: 1 },
       ),
+    });
+  });
+  let branding = {
+    appName: 'Fastify Business',
+    logoAssetId: null as string | null,
+    faviconAssetId: null as string | null,
+    primaryColor: '#1677ff',
+    loginTitle: '登录管理后台',
+    loginSubtitle: '使用部署管理员账号继续',
+    logoUrl: null as string | null,
+    faviconUrl: null as string | null,
+    revision: 0,
+    updatedAt: null as string | null,
+  };
+  await page.route('**/api/branding**', async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    if (url.pathname.startsWith('/api/branding/assets/')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'image/png',
+        body: Buffer.from(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+          'base64',
+        ),
+      });
+      return;
+    }
+    if (request.method() === 'PUT' && url.pathname === '/api/branding') {
+      const input = request.postDataJSON() as typeof branding;
+      branding = {
+        ...branding,
+        ...input,
+        logoUrl: input.logoAssetId ? `/api/branding/assets/logo?v=${'d'.repeat(16)}` : null,
+        faviconUrl: input.faviconAssetId
+          ? `/api/branding/assets/favicon?v=${'d'.repeat(16)}`
+          : null,
+        revision: branding.revision + 1,
+        updatedAt: '2026-09-02T00:00:00.000Z',
+      };
+    }
+    const body =
+      url.pathname === '/api/branding/public'
+        ? {
+            appName: branding.appName,
+            primaryColor: branding.primaryColor,
+            loginTitle: branding.loginTitle,
+            loginSubtitle: branding.loginSubtitle,
+            logoUrl: branding.logoUrl,
+            faviconUrl: branding.faviconUrl,
+            revision: branding.revision,
+          }
+        : branding;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(body),
     });
   });
   let localeSource: 'default' | 'database' = 'default';
@@ -650,8 +736,8 @@ test.beforeEach(async ({ page }) => {
           items: [
             setting({
               key: 'application.name',
-              label: '应用名称',
-              description: '用于管理后台和公共页面的应用名称。',
+              label: '服务名称',
+              description: '运行时服务标识和系统通知名称。',
               kind: 'public',
               control: 'text',
               source: 'environment',
@@ -1004,6 +1090,34 @@ test('browses and uploads reusable assets without exposing provider locations', 
   await expect(page.getByText('素材上传完成')).toBeVisible();
 });
 
+test('manages application branding with stable asset references and a live theme', async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  await page.goto('/admin/branding');
+  await expect(page.getByRole('heading', { name: '应用品牌' })).toBeVisible({ timeout: 20_000 });
+  await page.getByLabel('界面展示名称').fill('Lingcoo Console');
+  await page.getByLabel('品牌主色').fill('#722ed1');
+  await page.getByLabel('登录页标题').fill('欢迎回来');
+
+  await page
+    .getByRole('button', { name: /选择素材/ })
+    .first()
+    .click();
+  await expect(page.getByText('从素材库选择', { exact: true })).toBeVisible();
+  await page.getByText('品牌 Logo', { exact: true }).click();
+  await page.getByRole('button', { name: /保存品牌设置/ }).click();
+
+  await expect(page.getByText('应用品牌已更新')).toBeVisible();
+  await expect(page.locator('.admin-header').getByText('Lingcoo Console 管理后台')).toBeVisible();
+  await expect(page).toHaveTitle('Lingcoo Console 管理后台');
+  await expect(page.getByText(/bucket|object.?key|\/app\/data\/storage/i)).toHaveCount(0);
+  const brandedButtonColor = await page
+    .getByRole('button', { name: /保存品牌设置/ })
+    .evaluate((element) => getComputedStyle(element).backgroundColor);
+  expect(brandedButtonColor).not.toBe('rgb(22, 119, 255)');
+});
+
 test('hides protected navigation when the account has no matching permission', async ({ page }) => {
   await page.route('**/api/access/permissions', async (route) => {
     await route.fulfill({
@@ -1025,4 +1139,5 @@ test('hides protected navigation when the account has no matching permission', a
   await expect(page.getByRole('menuitem', { name: /Outbox 事件/ })).toHaveCount(0);
   await expect(page.getByRole('menuitem', { name: /邮件服务/ })).toHaveCount(0);
   await expect(page.getByRole('menuitem', { name: /素材库/ })).toHaveCount(0);
+  await expect(page.getByRole('menuitem', { name: /应用品牌/ })).toHaveCount(0);
 });

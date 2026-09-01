@@ -21,9 +21,10 @@
 - 阶段 8 Mail：已于 2026-09-01 完成；
 - 阶段 9 Notifications：已于 2026-09-01 完成；
 - 阶段 10 Storage 与 Asset Management：已于 2026-09-01 完成；
+- 阶段 11 Application Branding：已于 2026-09-02 完成；
 - 当前质量门禁：Format、Lint、Typecheck、Unit、Build、Admin Static Smoke、PostgreSQL Migration/Integration、桌面/移动端 Playwright 和 Docker Production Smoke 均通过；
-- 下一阶段：Application Branding；
-- Branding 完成前不并行创建 Payments 或其他后续模块骨架。
+- 下一阶段：Payments；
+- Payments 开始前不并行创建 Webhook Inbox 或其他后续模块骨架。
 
 ## 1. 最终决策
 
@@ -1000,7 +1001,19 @@ Storage 不承载商品图、课程封面、轮播排序等行业语义，也不
 
 ### 阶段 11：Application Branding
 
-完成品牌设置并直接使用阶段 10 的 Asset Reference，不使用临时 Logo 字段，避免二次改造。
+已完成单实例应用品牌配置，并直接使用阶段 10 的 Asset Reference：
+
+1. `application_branding` 单例聚合保存界面名称、六位 Hex 主色、登录文案和 Revision；
+2. Logo/Favicon 只由 `storage_asset_references` 保存关联，不在 Branding 主表重复保存 Asset ID、URL 或 Provider 位置；
+3. 整体更新在同一事务中完成行锁、乐观锁、图片类型校验、Reference 切换、配置写入和 Audit；
+4. 提供公开配置、Admin 查询/更新和受控品牌图片端点，公开响应不泄露 Asset ID 或 Storage 内部信息；
+5. 增加 `branding.read` / `branding.manage`，素材选择继续独立要求 `storage.read`；
+6. Admin 支持名称、主题色、登录文案、Logo/Favicon、实时预览，并同步更新 Shell、登录页、页面标题和浏览器图标；
+7. 品牌请求失败时回退本地默认值，只将 `primaryColor` 白名单映射到 Ant Design，不接受任意 CSS、HTML 或 Token Map；
+8. Storage 增加引用用途策略和稳定媒体大类约束，防止已被用作图片的 Asset 后续被替换成文档或文本；
+9. Contracts、API Client、PostgreSQL 事务集成、桌面/移动端 E2E、构建、静态托管和 Docker Production Smoke 均已验收。
+
+Branding 仍只描述当前部署应用本身，不引入 Tenant、Brand、Organization、CMS、多品牌或行业 Logo 语义。
 
 ### 阶段 12：Payments
 

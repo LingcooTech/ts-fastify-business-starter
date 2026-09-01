@@ -2,6 +2,7 @@ import { LockOutlined, MailOutlined } from '@ant-design/icons';
 import { Alert, Button, Card, Form, Input, Space, Typography } from 'antd';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 
+import { BrandMark, useBranding } from '../branding';
 import { useLogin, useSession } from './hooks';
 
 export function LoginPage() {
@@ -9,6 +10,7 @@ export function LoginPage() {
   const session = useSession();
   const navigate = useNavigate();
   const location = useLocation();
+  const branding = useBranding();
   const destination = (location.state as { from?: string } | null)?.from ?? '/';
 
   if (session.data) return <Navigate to={destination} replace />;
@@ -17,9 +19,9 @@ export function LoginPage() {
     <main className="identity-page">
       <Card className="identity-card" variant="borderless">
         <Space orientation="vertical" size={6} className="identity-heading">
-          <span className="identity-logo">FS</span>
-          <Typography.Title level={2}>登录管理后台</Typography.Title>
-          <Typography.Text type="secondary">使用部署管理员账号继续</Typography.Text>
+          <BrandMark />
+          <Typography.Title level={2}>{branding.loginTitle}</Typography.Title>
+          <Typography.Text type="secondary">{branding.loginSubtitle}</Typography.Text>
         </Space>
         {login.isError && <Alert type="error" showIcon message={login.error.message} />}
         <Form

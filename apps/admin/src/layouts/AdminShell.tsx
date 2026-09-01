@@ -26,6 +26,7 @@ import { foundationNavigation, selectedNavigationKey } from '../app/navigation';
 import { useThemeMode } from '../app/theme-context';
 import { CommandPalette } from '../components/CommandPalette';
 import { usePermissions } from '../features/access/PermissionContext';
+import { BrandMark, useBranding } from '../features/branding';
 import { useLogout, useSession } from '../features/identity/hooks';
 import { NotificationBell } from '../features/notifications/NotificationBell';
 
@@ -33,10 +34,11 @@ const { Header, Sider, Content } = Layout;
 const { useBreakpoint } = Grid;
 
 function Brand({ collapsed }: { collapsed: boolean }) {
+  const branding = useBranding();
   return (
     <div className="admin-brand">
-      <span className="admin-brand__mark">FS</span>
-      {!collapsed && <span>Fastify Business</span>}
+      <BrandMark compact />
+      {!collapsed && <span>{branding.appName}</span>}
     </div>
   );
 }
@@ -53,6 +55,7 @@ export function AdminShell() {
   const { mode, toggle } = useThemeMode();
   const { token } = theme.useToken();
   const permissions = usePermissions();
+  const branding = useBranding();
   const visibleNavigation = useMemo(
     () =>
       foundationNavigation.filter((item) => !item.permission || permissions.has(item.permission)),
@@ -128,7 +131,7 @@ export function AdminShell() {
               }
               onClick={() => (desktop ? setCollapsed((value) => !value) : setDrawerOpen(true))}
             />
-            <Typography.Text type="secondary">通用业务后台</Typography.Text>
+            <Typography.Text type="secondary">{branding.appName} 管理后台</Typography.Text>
           </Space>
           <div className="admin-header__actions">
             <Tooltip title="快速导航（⌘/Ctrl + K）">

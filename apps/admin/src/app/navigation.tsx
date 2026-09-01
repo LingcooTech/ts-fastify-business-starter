@@ -13,6 +13,7 @@ import {
   MailOutlined,
   NotificationOutlined,
   PictureOutlined,
+  BgColorsOutlined,
 } from '@ant-design/icons';
 import type { PermissionKey } from '@ts-fastify-business-starter/contracts';
 import type { ReactNode } from 'react';
@@ -90,6 +91,13 @@ export const foundationNavigation: AdminNavigationItem[] = [
     path: '/storage',
     icon: <PictureOutlined />,
     permission: 'storage.read',
+  },
+  {
+    key: 'branding',
+    label: '应用品牌',
+    path: '/branding',
+    icon: <BgColorsOutlined />,
+    permission: 'branding.read',
   },
   {
     key: 'notifications',
