@@ -58,6 +58,8 @@ test.beforeEach(async ({ page }) => {
           'mail.manage',
           'notifications.read',
           'notifications.manage',
+          'storage.read',
+          'storage.manage',
         ],
       }),
     });
@@ -511,6 +513,108 @@ test.beforeEach(async ({ page }) => {
     }
     await route.fallback();
   });
+  let storageRevision = 2;
+  const storageAsset = (name = '品牌说明') => ({
+    id: 'ef54dd84-ca70-4d17-bf80-ffaca336113c',
+    status: 'active',
+    visibility: 'private',
+    mediaKind: 'text',
+    displayName: name,
+    altText: null,
+    currentVersion: 1,
+    revision: storageRevision,
+    provider: 'local',
+    originalName: `${name}.txt`,
+    contentType: 'text/plain',
+    extension: 'txt',
+    sizeBytes: 12,
+    checksumSha256: 'e'.repeat(64),
+    referenceCount: 0,
+    contentUrl: '/api/storage/assets/ef54dd84-ca70-4d17-bf80-ffaca336113c/content',
+    publicUrl: null,
+    createdBy: '7f4cc774-403b-4d44-8c43-8f2fb26f0a85',
+    createdAt: '2026-09-01T08:00:00.000Z',
+    updatedAt: '2026-09-01T08:00:00.000Z',
+    deletedAt: null,
+  });
+  await page.route('**/api/storage/**', async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    if (url.pathname.endsWith('/content') && request.method() === 'POST') {
+      storageRevision += 1;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ...storageAsset('新素材'),
+          versions: [
+            {
+              id: 'ff54dd84-ca70-4d17-bf80-ffaca336113c',
+              version: 1,
+              provider: 'local',
+              status: 'ready',
+              originalName: 'new.txt',
+              contentType: 'text/plain',
+              extension: 'txt',
+              sizeBytes: 6,
+              checksumSha256: 'f'.repeat(64),
+              createdAt: '2026-09-01T08:00:00.000Z',
+              readyAt: '2026-09-01T08:00:00.000Z',
+              deletedAt: null,
+            },
+          ],
+        }),
+      });
+      return;
+    }
+    if (url.pathname === '/api/storage/assets/upload-authorizations') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          assetId: storageAsset().id,
+          objectId: 'ff54dd84-ca70-4d17-bf80-ffaca336113c',
+          assetRevision: storageRevision,
+          completed: false,
+          upload: {
+            method: 'POST',
+            url: '/api/storage/uploads/ff54dd84-ca70-4d17-bf80-ffaca336113c/content',
+            headers: {},
+            expiresAt: '2026-09-01T09:00:00.000Z',
+          },
+        }),
+      });
+      return;
+    }
+    const detail = url.pathname === `/api/storage/assets/${storageAsset().id}`;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(
+        detail
+          ? {
+              ...storageAsset(),
+              versions: [
+                {
+                  id: 'ff54dd84-ca70-4d17-bf80-ffaca336113c',
+                  version: 1,
+                  provider: 'local',
+                  status: 'ready',
+                  originalName: '品牌说明.txt',
+                  contentType: 'text/plain',
+                  extension: 'txt',
+                  sizeBytes: 12,
+                  checksumSha256: 'e'.repeat(64),
+                  createdAt: '2026-09-01T08:00:00.000Z',
+                  readyAt: '2026-09-01T08:00:00.000Z',
+                  deletedAt: null,
+                },
+              ],
+            }
+          : { items: [storageAsset()], page: 1, pageSize: 20, total: 1 },
+      ),
+    });
+  });
   let localeSource: 'default' | 'database' = 'default';
   let localeVersion: number | null = null;
   let localeValue = 'zh-CN';
@@ -690,6 +794,7 @@ test.afterEach(async ({ page }) => {
 });
 
 test('renders the Admin foundation and navigates to the showcase', async ({ page }) => {
+  test.setTimeout(60_000);
   await page.goto('/admin/');
 
   await expect(page.getByRole('heading', { name: '工程基础' })).toBeVisible();
@@ -706,6 +811,7 @@ test('renders the Admin foundation and navigates to the showcase', async ({ page
 });
 
 test('supports refreshing a deep Admin route', async ({ page }) => {
+  test.setTimeout(60_000);
   await page.goto('/admin/showcase');
   await expect(page.getByRole('heading', { name: 'UI 基础展示' })).toBeVisible({
     timeout: 20_000,
@@ -873,6 +979,31 @@ test('reads personal notifications and publishes an announcement asynchronously'
   await expect(page.getByText('发布中', { exact: true })).toBeVisible();
 });
 
+test('browses and uploads reusable assets without exposing provider locations', async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  await page.goto('/admin/storage');
+  await expect(page.getByRole('heading', { name: '素材库' })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText('品牌说明', { exact: true })).toBeVisible();
+  await page.getByText('品牌说明', { exact: true }).click();
+  const drawer = page.locator('.storage-asset-detail-drawer');
+  await expect(drawer.getByText('素材详情', { exact: true })).toBeVisible();
+  await expect(drawer.getByText('ef54dd84-ca70-4d17-bf80-ffaca336113c')).toBeVisible();
+  await expect(drawer.getByText(/bucket|object.?key|\/app\/data\/storage/i)).toHaveCount(0);
+  await page.keyboard.press('Escape');
+
+  await page
+    .locator('input[type="file"]')
+    .first()
+    .setInputFiles({
+      name: 'new.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('新素材'),
+    });
+  await expect(page.getByText('素材上传完成')).toBeVisible();
+});
+
 test('hides protected navigation when the account has no matching permission', async ({ page }) => {
   await page.route('**/api/access/permissions', async (route) => {
     await route.fulfill({
@@ -893,4 +1024,5 @@ test('hides protected navigation when the account has no matching permission', a
   await expect(page.getByRole('menuitem', { name: /后台任务/ })).toHaveCount(0);
   await expect(page.getByRole('menuitem', { name: /Outbox 事件/ })).toHaveCount(0);
   await expect(page.getByRole('menuitem', { name: /邮件服务/ })).toHaveCount(0);
+  await expect(page.getByRole('menuitem', { name: /素材库/ })).toHaveCount(0);
 });

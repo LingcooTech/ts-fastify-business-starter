@@ -26,6 +26,8 @@ const env = [
   'API_DOCS_ENABLED=false',
   'TRUST_PROXY=true',
   'LOG_LEVEL=info',
+  'STORAGE_PROVIDER=local',
+  'STORAGE_LOCAL_ROOT=/app/data/storage',
   'SETTINGS_ENCRYPTION_CURRENT_KEY_ID=smoke-v1',
   'SETTINGS_ENCRYPTION_KEYS={"smoke-v1":"docker-smoke-settings-key-at-least-32-characters"}',
   'POSTGRES_DB=app',
@@ -133,6 +135,22 @@ try {
   compose(['up', '-d', 'api', 'worker', 'caddy']);
   await waitForReady(`http://127.0.0.1:${hostPort}/health/ready`);
   await waitForWorker();
+  compose([
+    'exec',
+    '-T',
+    'api',
+    'node',
+    '-e',
+    "require('node:fs').writeFileSync('/app/data/storage/.api-smoke','ok')",
+  ]);
+  compose([
+    'exec',
+    '-T',
+    'worker',
+    'node',
+    '-e',
+    "if(require('node:fs').readFileSync('/app/data/storage/.api-smoke','utf8')!=='ok')process.exit(1)",
+  ]);
   execFileSync('curl', ['-fsS', `http://127.0.0.1:${hostPort}/health/live`], { stdio: 'inherit' });
   execFileSync('curl', ['-fsS', `http://127.0.0.1:${hostPort}/`], { stdio: 'ignore' });
   execFileSync('curl', ['-fsS', `http://127.0.0.1:${hostPort}/admin/`], { stdio: 'ignore' });

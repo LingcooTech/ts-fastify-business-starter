@@ -14,6 +14,7 @@ import {
   NOTIFICATION_MAIL_TEMPLATES,
 } from '../modules/notifications/public.js';
 import { createSettingsRegistry, createSettingsService } from '../modules/settings/public.js';
+import { createStorageRuntime, STORAGE_SETTINGS } from '../modules/storage/public.js';
 import { createOutboxRunner } from '../modules/outbox/public.js';
 import { applicationOutboxEvents } from '../outbox-event-definitions.js';
 import { applicationOutboxPublishers } from '../outbox-publisher-definitions.js';
@@ -30,6 +31,7 @@ await database.ping();
 const audit = createAuditService({ database });
 const settingsRegistry = createSettingsRegistry();
 for (const definition of MAIL_SETTINGS) settingsRegistry.register(definition);
+for (const definition of STORAGE_SETTINGS) settingsRegistry.register(definition);
 const settings = createSettingsService({
   database,
   environment,
@@ -62,6 +64,17 @@ const notifications = createNotificationsService({
   audit,
 });
 jobsRuntime.registry.register(notifications.publishAnnouncementJobHandler);
+const storage = createStorageRuntime({
+  database,
+  environment,
+  settings: settings.service,
+  jobs: jobsRuntime.service,
+  audit,
+});
+jobsRuntime.registry.register(storage.maintenance.deleteObjectJobHandler);
+jobsRuntime.registry.register(storage.maintenance.deleteRejectedObjectJobHandler);
+jobsRuntime.registry.register(storage.maintenance.cleanupPendingJobHandler);
+jobsRuntime.recurring.register(storage.maintenance.recurringJob);
 const { runner } = createJobsRunner({
   database,
   environment,

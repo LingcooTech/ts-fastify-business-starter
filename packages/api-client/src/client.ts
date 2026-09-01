@@ -20,6 +20,13 @@ export interface ApiRequest<TSchema extends z.ZodType> {
   signal?: AbortSignal;
 }
 
+export interface RawUploadRequest {
+  url: string;
+  body: Blob;
+  headers?: HeadersInit;
+  signal?: AbortSignal;
+}
+
 function joinUrl(baseUrl: string, path: string): string {
   if (!baseUrl) return path;
   return `${baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
@@ -46,7 +53,11 @@ export function createApiClient(options: ApiClientOptions = {}) {
       const method = request.method ?? 'GET';
       const headers = new Headers(request.headers);
       headers.set('accept', 'application/json');
-      if (request.body !== undefined) headers.set('content-type', 'application/json');
+      const formData =
+        typeof FormData !== 'undefined' && request.body instanceof FormData
+          ? request.body
+          : undefined;
+      if (request.body !== undefined && !formData) headers.set('content-type', 'application/json');
 
       const csrfToken = options.getCsrfToken?.();
       if (csrfToken && !['GET'].includes(method)) headers.set('x-csrf-token', csrfToken);
@@ -55,7 +66,12 @@ export function createApiClient(options: ApiClientOptions = {}) {
         method,
         headers,
         credentials: 'include',
-        body: request.body === undefined ? undefined : JSON.stringify(request.body),
+        body:
+          request.body === undefined
+            ? undefined
+            : formData
+              ? formData
+              : JSON.stringify(request.body),
         signal: request.signal,
       });
       const payload = await readJson(response);
@@ -67,6 +83,17 @@ export function createApiClient(options: ApiClientOptions = {}) {
       }
 
       return request.schema.parse(payload);
+    },
+    async uploadRaw(request: RawUploadRequest): Promise<void> {
+      const response = await fetchImplementation(request.url, {
+        method: 'PUT',
+        headers: request.headers,
+        credentials: 'omit',
+        body: request.body,
+        signal: request.signal,
+      });
+      if (!response.ok)
+        throw new Error(`Object storage upload failed with status ${response.status}`);
     },
   };
 }

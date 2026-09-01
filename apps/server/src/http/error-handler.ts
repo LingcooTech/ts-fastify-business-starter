@@ -22,6 +22,17 @@ export function registerErrorHandlers(app: FastifyInstance): void {
       );
     }
 
+    if (error.code === 'FST_ERR_CTP_BODY_TOO_LARGE') {
+      return reply
+        .status(413)
+        .send(
+          createApiErrorResponse(
+            { code: 'REQUEST_BODY_TOO_LARGE', message: '请求内容超过允许大小' },
+            request.id,
+          ),
+        );
+    }
+
     if (error instanceof ApiError) {
       return reply.status(error.statusCode).send(apiErrorResponseFromException(error, request.id));
     }

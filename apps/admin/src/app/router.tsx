@@ -72,6 +72,11 @@ const NotificationsPage = lazy(() =>
     default: module.NotificationsPage,
   })),
 );
+const AssetLibraryPage = lazy(() =>
+  import('../features/storage/AssetLibraryPage').then((module) => ({
+    default: module.AssetLibraryPage,
+  })),
+);
 
 function RouteLoading() {
   return (
@@ -120,6 +125,9 @@ export function AppRouter() {
               <Route path="mail" element={<MailPage />} />
             </Route>
             <Route path="notifications" element={<NotificationsPage />} />
+            <Route element={<RequirePermission permissions={['storage.read']} />}>
+              <Route path="storage" element={<AssetLibraryPage />} />
+            </Route>
             <Route path="forbidden" element={<ForbiddenPage />} />
             <Route path="unauthorized" element={<UnauthorizedPage />} />
             <Route path="home" element={<Navigate to="/" replace />} />

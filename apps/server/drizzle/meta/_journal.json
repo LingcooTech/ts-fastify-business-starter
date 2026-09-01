@@ -78,6 +78,13 @@
       "when": 1788247119212,
       "tag": "0010_stormy_wiccan",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788257555430,
+      "tag": "0011_keen_nighthawk",
+      "breakpoints": true
     }
   ]
 }

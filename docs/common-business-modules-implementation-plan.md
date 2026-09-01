@@ -20,9 +20,10 @@
 - 阶段 7 Transactional Outbox：已于 2026-08-31 完成；
 - 阶段 8 Mail：已于 2026-09-01 完成；
 - 阶段 9 Notifications：已于 2026-09-01 完成；
+- 阶段 10 Storage 与 Asset Management：已于 2026-09-01 完成；
 - 当前质量门禁：Format、Lint、Typecheck、Unit、Build、Admin Static Smoke、PostgreSQL Migration/Integration、桌面/移动端 Playwright 和 Docker Production Smoke 均通过；
-- 下一阶段：Storage 与 Asset Management；
-- Storage 完成前不并行创建 Branding 或其他后续模块骨架。
+- 下一阶段：Application Branding；
+- Branding 完成前不并行创建 Payments 或其他后续模块骨架。
 
 ## 1. 最终决策
 
@@ -975,7 +976,27 @@ Notifications 不负责行业联系人身份、营销分群和具体业务通知
 
 ### 阶段 10：Storage 与 Asset Management
 
-完成 Provider-neutral Storage、资源库和 Asset Picker。
+已完成内容：
+
+1. `storage_assets` 稳定业务身份、版本化 `storage_objects`、精确 `storage_asset_references`，以及数据库约束和
+   Trigger 保护的已就绪对象不可变事实；
+2. Local 与 S3-compatible Provider、短时效上传授权、私有 Bucket 和统一受控内容访问，Provider Secret 与
+   物理定位信息不进入浏览器；
+3. JPEG、PNG、GIF、WebP、AVIF、PDF、UTF-8 TXT/CSV 白名单，以及实际大小、魔数、扩展名、UTF-8 和
+   SHA-256 内容检查；
+4. 稳定 Asset ID 下的原子替换、Revision 乐观锁、历史版本事实，以及旧对象异步删除；
+5. 引用建立/切换/清除与业务写事务共边界，存在引用时禁止删除，业务表只保存 Asset ID；
+6. 上传预授权幂等和冲突检测、过期 Pending 清理、拒绝内容清理、逻辑删除与物理删除分离；
+7. `storage.delete-object`、`storage.delete-rejected-object` 和 `storage.cleanup-pending` Jobs，API 与 Worker 在
+   Local 模式共享存储卷；
+8. `storage.read/storage.manage`、Contracts、无 React API Client、公开/私有内容端点和全链路 Audit；
+9. Storage Settings、权限感知 Asset Library，以及可供后续模块保存稳定 Asset ID 的 `AssetPicker` 和
+   `AssetImageField`；
+10. 内容安全、Provider Contract、API 隐私、PostgreSQL 空库重复迁移/集成、桌面/移动端 Playwright 和
+    Docker Production Smoke 验收。
+
+Storage 不承载商品图、课程封面、轮播排序等行业语义，也不提供病毒扫描、图片裁切、转码或公共匿名上传。这些能力由
+实际应用按风险与媒体场景扩展。
 
 ### 阶段 11：Application Branding
 

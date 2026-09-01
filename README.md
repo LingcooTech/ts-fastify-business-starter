@@ -99,6 +99,7 @@ pnpm e2e
 - [Transactional Outbox](docs/outbox.md)
 - [Mail](docs/mail.md)
 - [Notifications](docs/notifications.md)
+- [Storage 与 Asset Management](docs/storage.md)
 
 ## 实施边界
 

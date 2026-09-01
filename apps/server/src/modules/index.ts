@@ -31,6 +31,12 @@ import {
   createNotificationsService,
   NOTIFICATION_MAIL_TEMPLATES,
 } from './notifications/public.js';
+import {
+  createStorageConnectionTester,
+  createStorageModule,
+  createStorageRuntime,
+  STORAGE_SETTINGS,
+} from './storage/public.js';
 
 export interface ApplicationModuleDependencies {
   environment: AppEnvironment;
@@ -44,6 +50,7 @@ export async function registerApplicationModules(
   const audit = createAuditService({ database: dependencies.database });
   const settingsRegistry = createSettingsRegistry();
   for (const definition of MAIL_SETTINGS) settingsRegistry.register(definition);
+  for (const definition of STORAGE_SETTINGS) settingsRegistry.register(definition);
   const settings = createSettingsService({ ...dependencies, audit, registry: settingsRegistry });
   const idempotency = createIdempotencyService(dependencies);
   const jobs = createJobsService({
@@ -70,7 +77,18 @@ export async function registerApplicationModules(
     audit,
   });
   jobs.registry.register(notifications.publishAnnouncementJobHandler);
+  const storage = createStorageRuntime({
+    ...dependencies,
+    settings: settings.service,
+    jobs: jobs.service,
+    audit,
+  });
+  jobs.registry.register(storage.maintenance.deleteObjectJobHandler);
+  jobs.registry.register(storage.maintenance.deleteRejectedObjectJobHandler);
+  jobs.registry.register(storage.maintenance.cleanupPendingJobHandler);
+  jobs.recurring.register(storage.maintenance.recurringJob);
   settings.registry.registerConnectionTester(createSmtpConnectionTester(settings.service));
+  settings.registry.registerConnectionTester(createStorageConnectionTester(storage.providers));
   const identity = createIdentityService({
     ...dependencies,
     audit,
@@ -133,6 +151,15 @@ export async function registerApplicationModules(
       mail: mail.service,
       audit,
       service: notifications.service,
+    }),
+  );
+  await app.register(
+    createStorageModule({
+      ...dependencies,
+      settings: settings.service,
+      jobs: jobs.service,
+      audit,
+      runtime: storage,
     }),
   );
 }

@@ -121,6 +121,30 @@ export const environmentSchema = z
       z.string().trim().toLowerCase().pipe(z.email().max(320)),
     ),
     SMTP_FROM_NAME: optionalEnvironmentValue(z.string().trim().min(1).max(120)),
+    STORAGE_PROVIDER: optionalEnvironmentValue(z.enum(['local', 's3'])),
+    STORAGE_LOCAL_ROOT: z.string().trim().min(1).default('.data/storage'),
+    STORAGE_MAX_UPLOAD_BYTES: z.coerce
+      .number()
+      .int()
+      .min(1_024)
+      .max(100 * 1_024 * 1_024)
+      .default(25 * 1_024 * 1_024),
+    STORAGE_UPLOAD_EXPIRY_SECONDS: z.coerce.number().int().min(60).max(3_600).default(900),
+    STORAGE_PENDING_RETENTION_HOURS: z.coerce.number().int().min(1).max(168).default(24),
+    STORAGE_MAINTENANCE_INTERVAL_MS: z.coerce
+      .number()
+      .int()
+      .min(60_000)
+      .max(86_400_000)
+      .default(3_600_000),
+    STORAGE_S3_REGION: optionalEnvironmentValue(z.string().trim().min(1).max(120)),
+    STORAGE_S3_ENDPOINT: optionalEnvironmentValue(z.url().max(1_000)),
+    STORAGE_S3_BUCKET: optionalEnvironmentValue(z.string().trim().min(1).max(255)),
+    STORAGE_S3_ACCESS_KEY: optionalEnvironmentValue(z.string().min(1).max(1_000)),
+    STORAGE_S3_SECRET_KEY: optionalEnvironmentValue(z.string().min(1).max(2_000)),
+    STORAGE_S3_FORCE_PATH_STYLE: optionalEnvironmentValue(
+      z.enum(['true', 'false']).transform((value) => value === 'true'),
+    ),
     MAIL_RETENTION_DAYS: z.coerce.number().int().min(1).max(365).default(30),
     MAIL_MAINTENANCE_INTERVAL_MS: z.coerce
       .number()
