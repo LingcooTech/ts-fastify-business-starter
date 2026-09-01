@@ -350,8 +350,13 @@ test.beforeEach(async ({ page }) => {
       createdAt: '2026-09-01T08:00:00.000Z',
       updatedAt: '2026-09-01T08:05:00.000Z',
     };
-    const detail =
-      new URL(route.request().url()).pathname === `/api/mail/deliveries/${delivery.id}`;
+    const pathname = new URL(route.request().url()).pathname.replace(/\/+$/, '');
+    const collectionPath = '/api/mail/deliveries';
+    const detailPath = `${collectionPath}/${delivery.id}`;
+    const detail = pathname.endsWith(detailPath);
+    if (!detail && !pathname.endsWith(collectionPath)) {
+      throw new Error(`Unexpected mail delivery request path: ${pathname}`);
+    }
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
