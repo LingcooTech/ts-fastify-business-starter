@@ -1,6 +1,10 @@
 import { and, count, desc, eq, gt, ilike, isNull, lt, ne, or } from 'drizzle-orm';
 
-import type { DatabaseExecutor, DatabaseHandle } from '../../../../database/database.js';
+import type {
+  DatabaseExecutor,
+  DatabaseHandle,
+  DatabaseTransaction,
+} from '../../../../database/database.js';
 import type {
   IdentityActionPurpose,
   IdentityUserPage,
@@ -370,7 +374,7 @@ export class IdentityRepository {
     return result || null;
   }
 
-  transaction<T>(work: (executor: DatabaseExecutor) => Promise<T>): Promise<T> {
+  transaction<T>(work: (executor: DatabaseTransaction) => Promise<T>): Promise<T> {
     return this.database.transaction(work);
   }
 

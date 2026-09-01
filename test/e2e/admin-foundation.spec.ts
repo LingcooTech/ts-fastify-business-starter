@@ -54,6 +54,8 @@ test.beforeEach(async ({ page }) => {
           'jobs.manage',
           'outbox.read',
           'outbox.manage',
+          'mail.read',
+          'mail.manage',
         ],
       }),
     });
@@ -330,6 +332,79 @@ test.beforeEach(async ({ page }) => {
             }
           : { items: [event], page: 1, pageSize: 20, total: 1 },
       ),
+    });
+  });
+  await page.route('**/api/mail/deliveries**', async (route) => {
+    const delivery = {
+      id: 'af54dd84-ca70-4d17-bf80-ffaca336113c',
+      jobId: '2f54dd84-ca70-4d17-bf80-ffaca336113c',
+      templateKey: 'identity.password-reset',
+      templateVersion: 1,
+      templateRevision: null,
+      recipientPreview: 'o***@example.com',
+      status: 'exhausted',
+      transport: 'smtp',
+      attemptCount: 5,
+      simulated: false,
+      sentAt: null,
+      createdAt: '2026-09-01T08:00:00.000Z',
+      updatedAt: '2026-09-01T08:05:00.000Z',
+    };
+    const detail =
+      new URL(route.request().url()).pathname === `/api/mail/deliveries/${delivery.id}`;
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(
+        detail
+          ? {
+              ...delivery,
+              contentHash: 'd'.repeat(64),
+              providerMessageId: null,
+              lastError: {
+                code: 'MAIL_SMTP_REJECTED',
+                message: 'SMTP 拒绝了邮件或配置无效',
+                statusCode: 422,
+                retryable: false,
+              },
+            }
+          : { items: [delivery], page: 1, pageSize: 20, total: 1 },
+      ),
+    });
+  });
+  let templateRevision: number | null = null;
+  await page.route('**/api/mail/templates**', async (route) => {
+    const request = route.request();
+    if (request.method() === 'PUT') templateRevision = (templateRevision ?? 0) + 1;
+    if (request.method() === 'DELETE') templateRevision = null;
+    const template = {
+      key: 'system.test',
+      name: '测试邮件',
+      description: '管理员验证邮件投递链路时发送。',
+      version: 1,
+      revision: templateRevision,
+      variables: ['applicationName'],
+      subjectTemplate: '{{applicationName}} 邮件服务测试',
+      textTemplate: '这是一封来自 {{applicationName}} 的测试邮件。',
+      overridden: templateRevision !== null,
+      updatedAt: templateRevision === null ? null : '2026-09-01T08:00:00.000Z',
+      updatedBy: templateRevision === null ? null : '7f4cc774-403b-4d44-8c43-8f2fb26f0a85',
+    };
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(
+        new URL(request.url()).pathname === '/api/mail/templates'
+          ? { items: [template] }
+          : template,
+      ),
+    });
+  });
+  await page.route('**/api/mail/actions/test', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ id: 'bf54dd84-ca70-4d17-bf80-ffaca336113c', deduplicated: false }),
     });
   });
   let localeSource: 'default' | 'database' = 'default';
@@ -649,6 +724,29 @@ test('diagnoses and replays dead outbox events without exposing immutable payloa
   await expect(detail.getByText('待发布', { exact: true })).toBeVisible();
 });
 
+test('manages safe mail templates, deliveries, and queued test mail', async ({ page }) => {
+  await page.goto('/admin/mail');
+  await expect(page.getByRole('heading', { name: '邮件服务' })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText('identity.password-reset', { exact: true })).toBeVisible();
+  await expect(page.getByText('o***@example.com', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '详情' }).click({ force: true });
+  const drawer = page.getByRole('dialog', { name: '邮件投递详情' });
+  await expect(drawer.getByText('MAIL_SMTP_REJECTED', { exact: false })).toBeVisible();
+  await expect(drawer.getByText(/top-secret|owner@example\.com|<html>/i)).toHaveCount(0);
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('tab', { name: '邮件模板' }).click();
+  await expect(page.getByText('system.test', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '编辑' }).click({ force: true });
+  await expect(page.getByText('不支持 HTML、Helper 或逻辑表达式')).toBeVisible();
+  await page.keyboard.press('Escape');
+
+  await page.getByRole('tab', { name: '测试邮件' }).click();
+  await page.getByLabel('收件邮箱').fill('test@example.com');
+  await page.getByRole('button', { name: '发送测试邮件' }).click();
+  await expect(page.getByText('测试邮件已进入队列')).toBeVisible();
+});
+
 test('hides protected navigation when the account has no matching permission', async ({ page }) => {
   await page.route('**/api/access/permissions', async (route) => {
     await route.fulfill({
@@ -668,4 +766,5 @@ test('hides protected navigation when the account has no matching permission', a
   await expect(page.getByRole('menuitem', { name: /幂等诊断/ })).toHaveCount(0);
   await expect(page.getByRole('menuitem', { name: /后台任务/ })).toHaveCount(0);
   await expect(page.getByRole('menuitem', { name: /Outbox 事件/ })).toHaveCount(0);
+  await expect(page.getByRole('menuitem', { name: /邮件服务/ })).toHaveCount(0);
 });

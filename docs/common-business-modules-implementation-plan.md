@@ -16,9 +16,12 @@
 - 阶段 3 Audit：已于 2026-08-31 完成；
 - 阶段 4 Settings：已于 2026-08-31 完成；
 - 阶段 5 Idempotency：已于 2026-08-31 完成；
-- 当前质量门禁：Format、Lint、Typecheck、Unit、Build、Admin Static Smoke、PostgreSQL Migration/Integration 和桌面/移动端 Playwright 均通过；
-- 下一阶段：Jobs；
-- Jobs 完成前不并行创建 Transactional Outbox 或其他模块骨架。
+- 阶段 6 Jobs：已于 2026-08-31 完成；
+- 阶段 7 Transactional Outbox：已于 2026-08-31 完成；
+- 阶段 8 Mail：已于 2026-09-01 完成；
+- 当前质量门禁：Format、Lint、Typecheck、Unit、Build、Admin Static Smoke、PostgreSQL Migration/Integration、桌面/移动端 Playwright 和 Docker Production Smoke 均通过；
+- 下一阶段：Notifications；
+- Notifications 完成前不并行创建 Storage 或其他后续模块骨架。
 
 ## 1. 最终决策
 
@@ -934,7 +937,21 @@ Outbox 不提供外部副作用 exactly-once。Publisher 必须使用 Event ID �
 
 ### 阶段 8：Mail
 
-完成邮件设置、模板、发送、重试和 Deliveries 管理。
+已完成内容：
+
+1. 代码 Template Registry、Zod 变量 Schema、受限双花括号语法、HTML 统一转义和 Admin Revision 乐观锁覆盖；
+2. `mail_deliveries` 加密 Envelope、收件人/内容/去重 Hash、脱敏预览及 Trigger 保护的不可变投递事实；
+3. `MailQueue` 强制调用方事务，Identity Token、Audit、Delivery 和 Job 原子提交或一起回滚；
+4. Delivery 与 Job 双重稳定去重、20 路并发只生成一组记录、冲突检测及 Job 清理后的终态去重保护；
+5. SMTP Provider、默认 Capture Adapter、稳定 Message-ID、错误安全分类和外部副作用 at-least-once 边界；
+6. `mail.send` Jobs 重试、`queued/sending/sent/exhausted` 业务状态，以及终态 Delivery 周期清理；
+7. Mail Settings、SMTP Secret、只验证连接/认证且支持超时取消的 Connection Test；
+8. `mail.read/mail.manage`、Deliveries/Detail/Templates/Test Mail Admin 页面和独立 API Client；
+9. Admin/API/Audit/Job 不暴露正文、Token、完整收件人、SMTP Secret、Provider 原始响应和异常堆栈；
+10. 模板安全、Envelope 加密、事务回滚、Identity 接入、20 路并发去重、Capture 发送、版本冲突、API 隐私和
+    PostgreSQL 空库迁移/完整集成测试。
+
+Mail 不负责站内通知、公告和用户通知状态；这些只在下一阶段 Notifications 中实现。
 
 ### 阶段 9：Notifications
 

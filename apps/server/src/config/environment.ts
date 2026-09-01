@@ -26,6 +26,7 @@ export const environmentSchema = z
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     APP_NAME: z.string().trim().min(1).default('ts-fastify-business-starter'),
     APP_VERSION: z.string().trim().min(1).default('development'),
+    APP_PUBLIC_URL: optionalEnvironmentValue(z.url().max(2_000)),
     API_HOST: z.string().trim().min(1).default('0.0.0.0'),
     API_PORT: z.coerce.number().int().min(1).max(65_535).default(8090),
     CORS_ORIGIN: z.string().default('http://localhost:5173,http://localhost:5174'),
@@ -108,6 +109,25 @@ export const environmentSchema = z
     SUPPORT_EMAIL: optionalEnvironmentValue(
       z.string().trim().toLowerCase().pipe(z.email().max(320)),
     ),
+    MAIL_TRANSPORT: optionalEnvironmentValue(z.enum(['capture', 'smtp'])),
+    SMTP_HOST: optionalEnvironmentValue(z.string().trim().min(1).max(320)),
+    SMTP_PORT: optionalEnvironmentValue(z.coerce.number().int().min(1).max(65_535)),
+    SMTP_SECURE: optionalEnvironmentValue(
+      z.enum(['true', 'false']).transform((value) => value === 'true'),
+    ),
+    SMTP_USER: optionalEnvironmentValue(z.string().trim().min(1).max(320)),
+    SMTP_PASSWORD: optionalEnvironmentValue(z.string().min(1).max(500)),
+    SMTP_FROM_ADDRESS: optionalEnvironmentValue(
+      z.string().trim().toLowerCase().pipe(z.email().max(320)),
+    ),
+    SMTP_FROM_NAME: optionalEnvironmentValue(z.string().trim().min(1).max(120)),
+    MAIL_RETENTION_DAYS: z.coerce.number().int().min(1).max(365).default(30),
+    MAIL_MAINTENANCE_INTERVAL_MS: z.coerce
+      .number()
+      .int()
+      .min(60_000)
+      .max(86_400_000)
+      .default(3_600_000),
     BOOTSTRAP_OWNER_EMAIL: z
       .union([z.literal(''), z.string().trim().toLowerCase().pipe(z.email().max(320))])
       .optional()
@@ -118,6 +138,13 @@ export const environmentSchema = z
       .transform((value) => value || undefined),
   })
   .superRefine((value, context) => {
+    if (value.NODE_ENV === 'production' && !value.APP_PUBLIC_URL) {
+      context.addIssue({
+        code: 'custom',
+        path: ['APP_PUBLIC_URL'],
+        message: 'must be configured in production',
+      });
+    }
     if (value.NODE_ENV === 'production' && !value.AUTH_COOKIE_SECURE) {
       context.addIssue({
         code: 'custom',

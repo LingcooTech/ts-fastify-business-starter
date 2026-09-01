@@ -64,6 +64,13 @@
       "when": 1788172020112,
       "tag": "0008_slippery_longshot",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788217490875,
+      "tag": "0009_nifty_diamondback",
+      "breakpoints": true
     }
   ]
 }

@@ -6,3 +6,4 @@ export * from '../modules/settings/infrastructure/persistence/settings.schema.js
 export * from '../modules/idempotency/infrastructure/persistence/idempotency.schema.js';
 export * from '../modules/jobs/infrastructure/persistence/jobs.schema.js';
 export * from '../modules/outbox/infrastructure/persistence/outbox.schema.js';
+export * from '../modules/mail/infrastructure/persistence/mail.schema.js';

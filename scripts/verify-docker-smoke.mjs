@@ -20,6 +20,7 @@ const env = [
   `CADDY_IMAGE=${caddyImage}`,
   'APP_NAME=ts-fastify-business-starter-smoke',
   'APP_VERSION=smoke',
+  `APP_PUBLIC_URL=http://127.0.0.1:${hostPort}`,
   'CORS_ORIGIN=http://localhost:5173',
   'DATABASE_URL=postgres://app:app_password@postgres:5432/app',
   'API_DOCS_ENABLED=false',

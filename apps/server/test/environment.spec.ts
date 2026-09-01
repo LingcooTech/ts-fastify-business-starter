@@ -7,6 +7,18 @@ const base = {
 };
 
 describe('identity environment', () => {
+  it('requires the public URL used by action links in production', () => {
+    expect(() =>
+      validateEnvironment({
+        ...base,
+        NODE_ENV: 'production',
+        AUTH_COOKIE_SECURE: 'true',
+        SETTINGS_ENCRYPTION_CURRENT_KEY_ID: 'production-v1',
+        SETTINGS_ENCRYPTION_KEYS: JSON.stringify({ 'production-v1': 'a'.repeat(32) }),
+      }),
+    ).toThrow(/APP_PUBLIC_URL/);
+  });
+
   it('requires secure cookies in production', () => {
     expect(() =>
       validateEnvironment({ ...base, NODE_ENV: 'production', AUTH_COOKIE_SECURE: 'false' }),

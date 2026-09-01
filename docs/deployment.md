@@ -22,7 +22,12 @@ pnpm smoke:docker
 
 ## 生产配置
 
-复制 `deploy/production.env.example`，至少设置数据库密码、CORS origin、镜像和监听端口。生产默认关闭 API docs，并通过 Caddy 终止 HTTP/HTTPS。
+复制 `deploy/production.env.example`，至少设置数据库密码、CORS origin、`APP_PUBLIC_URL`、镜像和监听端口。
+`APP_PUBLIC_URL` 用于生成密码重置与邮箱验证链接，生产环境不可省略。生产默认关闭 API docs，并通过 Caddy
+终止 HTTP/HTTPS。
+
+Mail 默认使用 `capture`，不会向外发送。启用真实邮件前，把 `MAIL_TRANSPORT` 改为 `smtp`，并配置 SMTP
+Host、Port、TLS、凭据和 From；SMTP 密码也可以在部署后通过 Admin 的 Secret Setting 加密保存。
 
 Dockerfile 默认使用官方 `node:24-alpine`、`docker-compose.prod.yml` 默认使用官方 PostgreSQL 和 Caddy
 镜像。网络受限或国内部署时，可在构建和 Compose 环境中覆盖 `NODE_IMAGE`、`POSTGRES_IMAGE`、`CADDY_IMAGE`

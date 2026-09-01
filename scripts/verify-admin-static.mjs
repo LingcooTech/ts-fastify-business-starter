@@ -14,6 +14,7 @@ const child = spawn(process.execPath, ['apps/server/dist/entrypoints/api.js'], {
     NODE_ENV: 'production',
     API_HOST: '127.0.0.1',
     API_PORT: String(port),
+    APP_PUBLIC_URL: origin,
     DATABASE_URL: 'postgres://app:app_password@127.0.0.1:5438/app',
     API_DOCS_ENABLED: 'false',
     AUTH_COOKIE_SECURE: 'true',

@@ -64,6 +64,9 @@ const JobsPage = lazy(() =>
 const OutboxPage = lazy(() =>
   import('../features/outbox/OutboxPage').then((module) => ({ default: module.OutboxPage })),
 );
+const MailPage = lazy(() =>
+  import('../features/mail/MailPage').then((module) => ({ default: module.MailPage })),
+);
 
 function RouteLoading() {
   return (
@@ -107,6 +110,9 @@ export function AppRouter() {
             </Route>
             <Route element={<RequirePermission permissions={['outbox.read']} />}>
               <Route path="outbox" element={<OutboxPage />} />
+            </Route>
+            <Route element={<RequirePermission permissions={['mail.read']} />}>
+              <Route path="mail" element={<MailPage />} />
             </Route>
             <Route path="forbidden" element={<ForbiddenPage />} />
             <Route path="unauthorized" element={<UnauthorizedPage />} />

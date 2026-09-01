@@ -47,6 +47,18 @@ export const SYSTEM_PERMISSIONS = [
     description: '重放死信 Outbox 事件。',
   },
   {
+    key: 'mail.read',
+    group: '业务能力',
+    name: '查看邮件',
+    description: '查看邮件模板和安全投递摘要。',
+  },
+  {
+    key: 'mail.manage',
+    group: '业务能力',
+    name: '管理邮件',
+    description: '管理邮件模板并发送测试邮件。',
+  },
+  {
     key: 'payments.read',
     group: '业务能力',
     name: '查看支付',

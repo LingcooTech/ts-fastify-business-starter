@@ -12,10 +12,20 @@ import {
 import { createHealthModule } from './health/plugin.js';
 import { createIdentityModule, createIdentityService } from './identity/plugin.js';
 import { createAuditModule, createAuditService } from './audit/public.js';
-import { createSettingsModule, createSettingsService } from './settings/public.js';
+import {
+  createSettingsModule,
+  createSettingsRegistry,
+  createSettingsService,
+} from './settings/public.js';
 import { createIdempotencyModule, createIdempotencyService } from './idempotency/public.js';
 import { createJobsModule, createJobsService } from './jobs/public.js';
 import { createOutboxModule, createOutboxService } from './outbox/public.js';
+import {
+  createMailModule,
+  createMailService,
+  createSmtpConnectionTester,
+  MAIL_SETTINGS,
+} from './mail/public.js';
 
 export interface ApplicationModuleDependencies {
   environment: AppEnvironment;
@@ -27,9 +37,9 @@ export async function registerApplicationModules(
   dependencies: ApplicationModuleDependencies,
 ): Promise<void> {
   const audit = createAuditService({ database: dependencies.database });
-  const identity = createIdentityService({ ...dependencies, audit });
-  const access = createAccessControlService({ database: dependencies.database, identity, audit });
-  const settings = createSettingsService({ ...dependencies, audit });
+  const settingsRegistry = createSettingsRegistry();
+  for (const definition of MAIL_SETTINGS) settingsRegistry.register(definition);
+  const settings = createSettingsService({ ...dependencies, audit, registry: settingsRegistry });
   const idempotency = createIdempotencyService(dependencies);
   const jobs = createJobsService({
     database: dependencies.database,
@@ -37,6 +47,23 @@ export async function registerApplicationModules(
     handlers: applicationJobHandlers,
     recurringJobs: applicationRecurringJobs,
   });
+  const mail = createMailService({
+    ...dependencies,
+    settings: settings.service,
+    jobs: jobs.service,
+    logger: app.log,
+    audit,
+  });
+  jobs.registry.register(mail.sendJobHandler);
+  jobs.registry.register(mail.cleanupJobHandler);
+  jobs.recurring.register(mail.recurringJob);
+  settings.registry.registerConnectionTester(createSmtpConnectionTester(settings.service));
+  const identity = createIdentityService({
+    ...dependencies,
+    audit,
+    actionDelivery: mail.actionDelivery,
+  });
+  const access = createAccessControlService({ database: dependencies.database, identity, audit });
   const outbox = createOutboxService({
     database: dependencies.database,
     audit,
@@ -74,6 +101,16 @@ export async function registerApplicationModules(
       audit,
       service: outbox.service,
       adminService: outbox.adminService,
+    }),
+  );
+  await app.register(
+    createMailModule({
+      ...dependencies,
+      settings: settings.service,
+      jobs: jobs.service,
+      logger: app.log,
+      audit,
+      service: mail.service,
     }),
   );
 }

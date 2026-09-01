@@ -235,11 +235,12 @@ export class IdentityService {
     const actionToken = token();
     const expiresAt = this.actionTokenExpiry();
     await this.repository.transaction(async (transaction) => {
+      const tokenDigest = digest(actionToken);
       await this.repository.createActionToken(
         {
           userId: user.id,
           purpose: 'password_reset',
-          tokenDigest: digest(actionToken),
+          tokenDigest,
           expiresAt,
         },
         transaction,
@@ -255,12 +256,15 @@ export class IdentityService {
         },
         transaction,
       );
-    });
-    await this.actionDelivery.deliver({
-      email: user.email,
-      purpose: 'password_reset',
-      token: actionToken,
-      expiresAt,
+      await this.actionDelivery.deliver({
+        userId: user.id,
+        email: user.email,
+        purpose: 'password_reset',
+        token: actionToken,
+        tokenDigest,
+        expiresAt,
+        transaction,
+      });
     });
     return this.exposedActionToken(actionToken);
   }
@@ -301,11 +305,12 @@ export class IdentityService {
     const actionToken = token();
     const expiresAt = this.actionTokenExpiry();
     await this.repository.transaction(async (transaction) => {
+      const tokenDigest = digest(actionToken);
       await this.repository.createActionToken(
         {
           userId,
           purpose: 'email_verification',
-          tokenDigest: digest(actionToken),
+          tokenDigest,
           expiresAt,
         },
         transaction,
@@ -324,12 +329,15 @@ export class IdentityService {
         },
         transaction,
       );
-    });
-    await this.actionDelivery.deliver({
-      email: credential.user.email,
-      purpose: 'email_verification',
-      token: actionToken,
-      expiresAt,
+      await this.actionDelivery.deliver({
+        userId,
+        email: credential.user.email,
+        purpose: 'email_verification',
+        token: actionToken,
+        tokenDigest,
+        expiresAt,
+        transaction,
+      });
     });
     return this.exposedActionToken(actionToken);
   }
