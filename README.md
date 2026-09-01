@@ -98,6 +98,7 @@ pnpm e2e
 - [Jobs](docs/jobs.md)
 - [Transactional Outbox](docs/outbox.md)
 - [Mail](docs/mail.md)
+- [Notifications](docs/notifications.md)
 
 ## 实施边界
 

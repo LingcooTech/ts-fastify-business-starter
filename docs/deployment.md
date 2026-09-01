@@ -29,6 +29,9 @@ pnpm smoke:docker
 Mail 默认使用 `capture`，不会向外发送。启用真实邮件前，把 `MAIL_TRANSPORT` 改为 `smtp`，并配置 SMTP
 Host、Port、TLS、凭据和 From；SMTP 密码也可以在部署后通过 Admin 的 Secret Setting 加密保存。
 
+Notifications 的站内通知查询由 API 提供；公告受众展开和可选邮件发送由 Worker 执行。生产环境必须持续运行 Worker，
+否则公告会停留在 `publishing`、邮件会停留在排队状态，但已经提交的站内通知事实不会丢失。
+
 Dockerfile 默认使用官方 `node:24-alpine`、`docker-compose.prod.yml` 默认使用官方 PostgreSQL 和 Caddy
 镜像。网络受限或国内部署时，可在构建和 Compose 环境中覆盖 `NODE_IMAGE`、`POSTGRES_IMAGE`、`CADDY_IMAGE`
 为可访问的镜像缓存或企业镜像仓库；不要修改业务代码或把单一地区镜像写死在 Starter 中。例如本地 Docker

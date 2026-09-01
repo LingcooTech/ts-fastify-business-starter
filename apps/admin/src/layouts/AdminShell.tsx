@@ -1,5 +1,4 @@
 import {
-  BellOutlined,
   BulbOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -28,6 +27,7 @@ import { useThemeMode } from '../app/theme-context';
 import { CommandPalette } from '../components/CommandPalette';
 import { usePermissions } from '../features/access/PermissionContext';
 import { useLogout, useSession } from '../features/identity/hooks';
+import { NotificationBell } from '../features/notifications/NotificationBell';
 
 const { Header, Sider, Content } = Layout;
 const { useBreakpoint } = Grid;
@@ -149,9 +149,7 @@ export function AdminShell() {
                 onClick={toggle}
               />
             </Tooltip>
-            <Tooltip title="通知模块将在后续阶段启用">
-              <Button type="text" aria-label="通知" icon={<BellOutlined />} />
-            </Tooltip>
+            <NotificationBell />
             <Dropdown
               menu={{
                 items: [

@@ -1,7 +1,7 @@
 # Mail
 
 Mail 模块负责代码注册模板、受控后台覆盖、加密投递快照、SMTP/Capture Provider 和 Jobs 重试。它不负责站内
-通知、公告、用户偏好或业务通知意图；这些属于后续 Notifications 或具体业务模块。
+通知、公告、用户偏好或业务通知意图；这些由 Notifications 或具体业务模块持有，邮件渠道只通过 `MailQueue` 接入。
 
 ## 可靠性边界
 
@@ -32,7 +32,7 @@ Token 摘要仍由 Identity 保存，Job Payload 只有 `deliveryId`。
 - 主题移除换行；
 - HTML 由渲染后的纯文本统一转义生成，不允许 Admin 保存任意 HTML、脚本或远程资源。
 
-当前代码模板包括密码重置、邮箱验证和系统测试邮件。具体行业模块应注册自己的模板定义，不应把教育、零售等
+当前代码模板包括密码重置、邮箱验证、系统测试邮件和 Notifications 通用通知。具体行业模块应注册自己的模板定义，不应把教育、零售等
 文案加入通用 Starter。
 
 ## 数据与 Secret

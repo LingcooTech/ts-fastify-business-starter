@@ -11,6 +11,7 @@ import {
   FieldTimeOutlined,
   SwapOutlined,
   MailOutlined,
+  NotificationOutlined,
 } from '@ant-design/icons';
 import type { PermissionKey } from '@ts-fastify-business-starter/contracts';
 import type { ReactNode } from 'react';
@@ -81,6 +82,12 @@ export const foundationNavigation: AdminNavigationItem[] = [
     path: '/mail',
     icon: <MailOutlined />,
     permission: 'mail.read',
+  },
+  {
+    key: 'notifications',
+    label: '通知中心',
+    path: '/notifications',
+    icon: <NotificationOutlined />,
   },
   {
     key: 'account-security',

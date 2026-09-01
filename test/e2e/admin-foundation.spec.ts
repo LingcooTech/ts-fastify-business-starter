@@ -56,6 +56,8 @@ test.beforeEach(async ({ page }) => {
           'outbox.manage',
           'mail.read',
           'mail.manage',
+          'notifications.read',
+          'notifications.manage',
         ],
       }),
     });
@@ -412,6 +414,103 @@ test.beforeEach(async ({ page }) => {
       body: JSON.stringify({ id: 'bf54dd84-ca70-4d17-bf80-ffaca336113c', deduplicated: false }),
     });
   });
+  let notificationRead = false;
+  let announcementStatus: 'draft' | 'publishing' = 'draft';
+  let announcementRevision = 1;
+  await page.route('**/api/notifications**', async (route) => {
+    const request = route.request();
+    const url = new URL(request.url());
+    const now = '2026-09-01T08:00:00.000Z';
+    const notification = {
+      id: 'cf54dd84-ca70-4d17-bf80-ffaca336113c',
+      category: 'system.release',
+      level: 'info',
+      title: '通知中心已启用',
+      body: '站内通知与邮件投递现在采用相互隔离的事实记录。',
+      ctaLabel: '查看说明',
+      ctaUrl: '/notifications',
+      sourceType: 'system_release',
+      sourceId: 'stage-9',
+      metadata: {},
+      status: notificationRead ? 'read' : 'unread',
+      readAt: notificationRead ? now : null,
+      archivedAt: null,
+      createdAt: now,
+    };
+    const announcement = {
+      id: 'df54dd84-ca70-4d17-bf80-ffaca336113c',
+      status: announcementStatus,
+      audienceType: 'all_active_users',
+      channels: ['in_app'],
+      level: 'warning',
+      title: '系统维护公告',
+      body: '今晚将进行短时维护。',
+      ctaLabel: null,
+      ctaUrl: null,
+      recipientCount: announcementStatus === 'draft' ? 0 : 1,
+      deliveredCount: 0,
+      revision: announcementRevision,
+      createdBy: '7f4cc774-403b-4d44-8c43-8f2fb26f0a85',
+      publishedAt: null,
+      withdrawnAt: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    if (url.pathname === '/api/notifications/unread-count') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ count: notificationRead ? 0 : 1 }),
+      });
+      return;
+    }
+    if (url.pathname === '/api/notifications/actions/read-all' && request.method() === 'POST') {
+      const changed = notificationRead ? 0 : 1;
+      notificationRead = true;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ updatedCount: changed }),
+      });
+      return;
+    }
+    if (url.pathname.endsWith('/actions/read') && request.method() === 'POST') {
+      notificationRead = true;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ...notification, status: 'read', readAt: now }),
+      });
+      return;
+    }
+    if (url.pathname.startsWith('/api/notifications/announcements')) {
+      if (url.pathname.endsWith('/actions/publish') && request.method() === 'POST') {
+        announcementStatus = 'publishing';
+        announcementRevision += 1;
+      }
+      const isCollection = url.pathname === '/api/notifications/announcements';
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(
+          isCollection
+            ? { items: [announcement], page: 1, pageSize: 20, total: 1 }
+            : { ...announcement, audience: { type: 'all_active_users' } },
+        ),
+      });
+      return;
+    }
+    if (url.pathname === '/api/notifications') {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ items: [notification], page: 1, pageSize: 20, total: 1 }),
+      });
+      return;
+    }
+    await route.fallback();
+  });
   let localeSource: 'default' | 'database' = 'default';
   let localeVersion: number | null = null;
   let localeValue = 'zh-CN';
@@ -751,6 +850,27 @@ test('manages safe mail templates, deliveries, and queued test mail', async ({ p
   await page.getByLabel('收件邮箱').fill('test@example.com');
   await page.getByRole('button', { name: '发送测试邮件' }).click();
   await expect(page.getByText('测试邮件已进入队列')).toBeVisible();
+});
+
+test('reads personal notifications and publishes an announcement asynchronously', async ({
+  page,
+}) => {
+  test.setTimeout(60_000);
+  await page.goto('/admin/notifications');
+  await expect(page.getByRole('heading', { name: '通知中心' })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText('通知中心已启用', { exact: true })).toBeVisible();
+  await expect(page.locator('.ant-badge-count')).toHaveText('1');
+
+  await page.getByRole('button', { name: '标记已读' }).click();
+  await expect(page.getByText('已读', { exact: true })).toBeVisible();
+  await expect(page.locator('.ant-badge-count')).toHaveCount(0);
+
+  await page.getByRole('tab', { name: '公告管理' }).click();
+  await expect(page.getByText('系统维护公告', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '发布' }).click();
+  await page.getByRole('button', { name: '确认发布' }).click();
+  await expect(page.getByText('公告已进入异步发布队列')).toBeVisible();
+  await expect(page.getByText('发布中', { exact: true })).toBeVisible();
 });
 
 test('hides protected navigation when the account has no matching permission', async ({ page }) => {

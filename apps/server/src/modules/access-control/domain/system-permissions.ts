@@ -71,10 +71,16 @@ export const SYSTEM_PERMISSIONS = [
     description: '执行支付、退款等受控操作。',
   },
   {
+    key: 'notifications.read',
+    group: '业务能力',
+    name: '查看公告',
+    description: '查看公告发布状态和受众统计。',
+  },
+  {
     key: 'notifications.manage',
     group: '业务能力',
     name: '管理通知',
-    description: '管理通知模板和发送任务。',
+    description: '创建、编辑、发布和撤回公告。',
   },
   {
     key: 'storage.read',

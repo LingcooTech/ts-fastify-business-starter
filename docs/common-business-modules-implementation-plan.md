@@ -19,9 +19,10 @@
 - 阶段 6 Jobs：已于 2026-08-31 完成；
 - 阶段 7 Transactional Outbox：已于 2026-08-31 完成；
 - 阶段 8 Mail：已于 2026-09-01 完成；
+- 阶段 9 Notifications：已于 2026-09-01 完成；
 - 当前质量门禁：Format、Lint、Typecheck、Unit、Build、Admin Static Smoke、PostgreSQL Migration/Integration、桌面/移动端 Playwright 和 Docker Production Smoke 均通过；
-- 下一阶段：Notifications；
-- Notifications 完成前不并行创建 Storage 或其他后续模块骨架。
+- 下一阶段：Storage 与 Asset Management；
+- Storage 完成前不并行创建 Branding 或其他后续模块骨架。
 
 ## 1. 最终决策
 
@@ -955,7 +956,22 @@ Mail 不负责站内通知、公告和用户通知状态；这些只在下一阶
 
 ### 阶段 9：Notifications
 
-完成站内通知、公告、未读状态和邮件渠道编排。
+已完成内容：
+
+1. `NotificationPublisher` 事务 Port、通知事实模型、稳定去重摘要和相同键异内容冲突检测；
+2. 用户已读/归档状态、所有权隔离、数据库实时未读计数，以及撤回通知不进入列表和未读数；
+3. Trigger 保护通知内容不可变、公告状态机、目标状态与计数约束，原始去重键不落库；
+4. 公告草稿、Revision 乐观锁、全部活跃账号/指定账号受众、发布时快照和 10,000 人通用广播上限；
+5. `notifications.publish-announcement` Job、100 人批处理、并发 Worker 锁和重试不重复生成通知；
+6. Mail `notifications.generic` 模板和事务内投递编排，邮件失败与站内通知事实隔离；
+7. `NotificationPreferenceResolver` 扩展点，行业收件人映射、业务模板和分群继续由实际应用所有；
+8. `notifications.read/notifications.manage`、当前账号 API、公告 API、Contracts 和无 React API Client；
+9. Header 未读 Badge、当前账号通知、筛选/已读/归档，以及权限感知的公告编辑、发布、撤回与进度 Admin；
+10. 事务回滚、20 路并发去重、跨账号隐私、受众快照、并发 Worker、撤回、邮件失败、不可变 Trigger、桌面/移动端和
+    PostgreSQL 空库迁移验收。
+
+Notifications 不负责行业联系人身份、营销分群和具体业务通知规则。学员/家长、会员、订单、班级或合作方到接收账号的
+映射必须留在 Edu、Retail 或 Core Stack 的领域模块中。
 
 ### 阶段 10：Storage 与 Asset Management
 

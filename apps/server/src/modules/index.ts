@@ -26,6 +26,11 @@ import {
   createSmtpConnectionTester,
   MAIL_SETTINGS,
 } from './mail/public.js';
+import {
+  createNotificationsModule,
+  createNotificationsService,
+  NOTIFICATION_MAIL_TEMPLATES,
+} from './notifications/public.js';
 
 export interface ApplicationModuleDependencies {
   environment: AppEnvironment;
@@ -53,10 +58,18 @@ export async function registerApplicationModules(
     jobs: jobs.service,
     logger: app.log,
     audit,
+    templates: NOTIFICATION_MAIL_TEMPLATES,
   });
   jobs.registry.register(mail.sendJobHandler);
   jobs.registry.register(mail.cleanupJobHandler);
   jobs.recurring.register(mail.recurringJob);
+  const notifications = createNotificationsService({
+    ...dependencies,
+    jobs: jobs.service,
+    mail: mail.service,
+    audit,
+  });
+  jobs.registry.register(notifications.publishAnnouncementJobHandler);
   settings.registry.registerConnectionTester(createSmtpConnectionTester(settings.service));
   const identity = createIdentityService({
     ...dependencies,
@@ -111,6 +124,15 @@ export async function registerApplicationModules(
       logger: app.log,
       audit,
       service: mail.service,
+    }),
+  );
+  await app.register(
+    createNotificationsModule({
+      ...dependencies,
+      jobs: jobs.service,
+      mail: mail.service,
+      audit,
+      service: notifications.service,
     }),
   );
 }

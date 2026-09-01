@@ -9,7 +9,11 @@ import type { SettingsReader } from '../settings/public.js';
 import { MailIdentityActionDelivery } from './application/identity-action-delivery.js';
 import { MailService } from './application/mail.service.js';
 import { registerMailRoutes } from './api/routes.js';
-import { MailTemplateRegistry, type MailTemplateDefinition } from './domain/template.registry.js';
+import {
+  CORE_MAIL_TEMPLATES,
+  MailTemplateRegistry,
+  type MailTemplateDefinition,
+} from './domain/template.registry.js';
 import {
   ConfiguredMailProvider,
   type MailLogger,
@@ -29,7 +33,10 @@ export interface MailModuleDependencies {
 }
 
 export function createMailService(dependencies: MailModuleDependencies) {
-  const templates = new MailTemplateRegistry(dependencies.templates);
+  const templates = new MailTemplateRegistry([
+    ...CORE_MAIL_TEMPLATES,
+    ...(dependencies.templates ?? []),
+  ]);
   const repository = new MailRepository(dependencies.database);
   const provider = new ConfiguredMailProvider(dependencies.settings, dependencies.logger);
   const service =

@@ -67,6 +67,11 @@ const OutboxPage = lazy(() =>
 const MailPage = lazy(() =>
   import('../features/mail/MailPage').then((module) => ({ default: module.MailPage })),
 );
+const NotificationsPage = lazy(() =>
+  import('../features/notifications/NotificationsPage').then((module) => ({
+    default: module.NotificationsPage,
+  })),
+);
 
 function RouteLoading() {
   return (
@@ -114,6 +119,7 @@ export function AppRouter() {
             <Route element={<RequirePermission permissions={['mail.read']} />}>
               <Route path="mail" element={<MailPage />} />
             </Route>
+            <Route path="notifications" element={<NotificationsPage />} />
             <Route path="forbidden" element={<ForbiddenPage />} />
             <Route path="unauthorized" element={<UnauthorizedPage />} />
             <Route path="home" element={<Navigate to="/" replace />} />

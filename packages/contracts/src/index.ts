@@ -12,3 +12,4 @@ export * from './idempotency.js';
 export * from './jobs.js';
 export * from './outbox.js';
 export * from './mail.js';
+export * from './notifications.js';

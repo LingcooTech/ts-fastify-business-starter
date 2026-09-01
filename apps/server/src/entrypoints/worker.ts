@@ -9,6 +9,10 @@ import { createJobsRunner } from '../modules/jobs/public.js';
 import { createAuditService } from '../modules/audit/public.js';
 import { createJobsService } from '../modules/jobs/public.js';
 import { createMailService, MAIL_SETTINGS } from '../modules/mail/public.js';
+import {
+  createNotificationsService,
+  NOTIFICATION_MAIL_TEMPLATES,
+} from '../modules/notifications/public.js';
 import { createSettingsRegistry, createSettingsService } from '../modules/settings/public.js';
 import { createOutboxRunner } from '../modules/outbox/public.js';
 import { applicationOutboxEvents } from '../outbox-event-definitions.js';
@@ -45,10 +49,19 @@ const mail = createMailService({
   jobs: jobsRuntime.service,
   logger,
   audit,
+  templates: NOTIFICATION_MAIL_TEMPLATES,
 });
 jobsRuntime.registry.register(mail.sendJobHandler);
 jobsRuntime.registry.register(mail.cleanupJobHandler);
 jobsRuntime.recurring.register(mail.recurringJob);
+const notifications = createNotificationsService({
+  database,
+  environment,
+  jobs: jobsRuntime.service,
+  mail: mail.service,
+  audit,
+});
+jobsRuntime.registry.register(notifications.publishAnnouncementJobHandler);
 const { runner } = createJobsRunner({
   database,
   environment,
