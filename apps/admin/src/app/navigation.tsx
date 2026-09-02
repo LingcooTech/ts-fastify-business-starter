@@ -14,6 +14,7 @@ import {
   NotificationOutlined,
   PictureOutlined,
   BgColorsOutlined,
+  DollarOutlined,
 } from '@ant-design/icons';
 import type { PermissionKey } from '@ts-fastify-business-starter/contracts';
 import type { ReactNode } from 'react';
@@ -104,6 +105,13 @@ export const foundationNavigation: AdminNavigationItem[] = [
     label: '通知中心',
     path: '/notifications',
     icon: <NotificationOutlined />,
+  },
+  {
+    key: 'payments',
+    label: '支付与对账',
+    path: '/payments',
+    icon: <DollarOutlined />,
+    permission: 'payments.read',
   },
   {
     key: 'account-security',

@@ -1,5 +1,5 @@
 import { App } from 'antd';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { PermissionProvider } from '../access/PermissionContext';
@@ -35,7 +35,7 @@ vi.mock('../storage', () => ({
 
 describe('BrandingPage', () => {
   it('renders constrained fields and a live preview for an authorized manager', async () => {
-    render(
+    const view = render(
       <App>
         <PermissionProvider permissions={['branding.read', 'branding.manage', 'storage.read']}>
           <BrandingPage />
@@ -47,5 +47,8 @@ describe('BrandingPage', () => {
     expect(screen.getByLabelText('登录页标题')).toHaveValue('欢迎回来');
     expect(screen.getAllByRole('button', { name: '选择素材' })).toHaveLength(2);
     expect(screen.getByText('实时预览')).toBeInTheDocument();
+
+    view.unmount();
+    await act(async () => undefined);
   });
 });

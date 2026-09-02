@@ -145,6 +145,9 @@ export const environmentSchema = z
     STORAGE_S3_FORCE_PATH_STYLE: optionalEnvironmentValue(
       z.enum(['true', 'false']).transform((value) => value === 'true'),
     ),
+    PAYMENTS_MOCK_APP_ID: optionalEnvironmentValue(z.string().trim().min(1).max(200)),
+    PAYMENTS_MOCK_MERCHANT_ID: optionalEnvironmentValue(z.string().trim().min(1).max(200)),
+    PAYMENTS_MOCK_SIGNING_SECRET: optionalEnvironmentValue(z.string().min(32).max(500)),
     MAIL_RETENTION_DAYS: z.coerce.number().int().min(1).max(365).default(30),
     MAIL_MAINTENANCE_INTERVAL_MS: z.coerce
       .number()

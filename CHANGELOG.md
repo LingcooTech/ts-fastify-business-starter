@@ -27,3 +27,15 @@
 - Added Transactional Outbox with transaction-required append, immutable versioned event facts,
   aggregate ordering, fenced Publisher recovery, bounded dead-letter replay, Consumer Inbox
   deduplication, safe diagnostics, and responsive Admin UI.
+- Added secure transactional Mail delivery with registered templates, capture and SMTP transports,
+  Jobs-backed retries, audited test delivery, retention maintenance, and Admin diagnostics.
+- Added in-app Notifications and Announcements with audience targeting, unread state, optional Mail
+  orchestration, idempotent publication, lifecycle controls, and a current-account notification center.
+- Added Storage and Asset Management with local and S3-compatible providers, content inspection,
+  stable versioned assets, reference-safe replacement and deletion, background cleanup, and an Admin
+  asset library and picker.
+- Added Application Branding with Storage-backed logo and favicon references, validated theme and
+  login copy, a public projection, optimistic updates, live Admin preview, and audited changes.
+- Added Payments with idempotent business references, Mock Provider adapters, raw-body HMAC callback
+  verification, immutable callback facts, guarded refunds, reconciliation, a business fact port,
+  runtime contracts/API client, and a permission-aware Admin console.

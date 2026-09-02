@@ -82,6 +82,9 @@ const BrandingPage = lazy(() =>
     default: module.BrandingPage,
   })),
 );
+const PaymentsPage = lazy(() =>
+  import('../features/payments/PaymentsPage').then((module) => ({ default: module.PaymentsPage })),
+);
 
 function RouteLoading() {
   return (
@@ -135,6 +138,9 @@ export function AppRouter() {
             </Route>
             <Route element={<RequirePermission permissions={['branding.read']} />}>
               <Route path="branding" element={<BrandingPage />} />
+            </Route>
+            <Route element={<RequirePermission permissions={['payments.read']} />}>
+              <Route path="payments" element={<PaymentsPage />} />
             </Route>
             <Route path="forbidden" element={<ForbiddenPage />} />
             <Route path="unauthorized" element={<UnauthorizedPage />} />

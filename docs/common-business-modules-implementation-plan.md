@@ -22,9 +22,10 @@
 - 阶段 9 Notifications：已于 2026-09-01 完成；
 - 阶段 10 Storage 与 Asset Management：已于 2026-09-01 完成；
 - 阶段 11 Application Branding：已于 2026-09-02 完成；
+- 阶段 12 Payments：已于 2026-09-03 完成；
 - 当前质量门禁：Format、Lint、Typecheck、Unit、Build、Admin Static Smoke、PostgreSQL Migration/Integration、桌面/移动端 Playwright 和 Docker Production Smoke 均通过；
-- 下一阶段：Payments；
-- Payments 开始前不并行创建 Webhook Inbox 或其他后续模块骨架。
+- 下一阶段：Webhook Inbox 价值评估与产品化交付；
+- Webhook Inbox 是否成为默认模块，先以 Payments 回调边界和真实项目接入结果做决策。
 
 ## 1. 最终决策
 
@@ -1017,7 +1018,20 @@ Branding 仍只描述当前部署应用本身，不引入 Tenant、Brand、Organ
 
 ### 阶段 12：Payments
 
-完成支付、退款、回调、对账、管理页面和 Mock Provider。
+已完成内容：
+
+1. `payment_intents`、`payment_provider_transactions`、`payment_callbacks` 和 `payment_refunds` 四类所有权清晰的数据模型及 Migration；
+2. 以业务引用作为稳定身份的支付意图，以及 Provider Intent ID 幂等调用约定、未知状态和受控对账恢复；
+3. 可扩展 `PaymentProviderAdapter` 与 Starter 默认 Mock Provider，支付宝和微信 Adapter 继续留给具体项目；
+4. 使用原始 HTTP Body 的 HMAC-SHA256 验签，并校验 App ID、商户 ID、Provider Transaction ID、金额和币种；
+5. 验签成功回调只保存 SHA-256 和稳定字段，数据库 Trigger 拒绝更新和删除回调事实；
+6. 行锁事务内预留退款金额、`(intent_id, request_key)` 幂等、超额退款拒绝和 Provider Refund ID 唯一约束；
+7. 创建、关闭、查询/对账、退款、回调和列表 API，以及 `payments.read/payments.manage` 默认拒绝权限；
+8. 支付 Provider 配置接入 Typed Settings，签名密钥作为 Secret 永不回读；
+9. Contracts、无 React API Client、支付意图/交易/回调/退款 Admin 页面，以及可注入的 `PaymentFactReceiver` 业务事实 Port；
+10. Contract/API Client/Provider 单测、PostgreSQL 事务集成、迁移幂等、桌面/移动端 Playwright、静态托管和 Docker Production Smoke 验收。
+
+Payments 不导入或修改行业订单 Repository；原始回调 Body 不落库，敏感 Provider 配置不进入浏览器、日志或审计差异。
 
 ### 阶段 13：Webhook Inbox 决策
 

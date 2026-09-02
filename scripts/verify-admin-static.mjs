@@ -23,7 +23,8 @@ const child = spawn(process.execPath, ['apps/server/dist/entrypoints/api.js'], {
     SETTINGS_ENCRYPTION_KEYS: JSON.stringify({
       'smoke-v1': 'static-smoke-settings-key-at-least-32-characters',
     }),
-    LOG_LEVEL: 'silent',
+    // Keep successful smoke runs quiet while preserving fatal startup diagnostics.
+    LOG_LEVEL: 'error',
   },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
@@ -38,7 +39,11 @@ child.stderr.on('data', (chunk) => {
 async function waitForServer() {
   const deadline = Date.now() + 10_000;
   while (Date.now() < deadline) {
-    if (child.exitCode !== null) throw new Error(`server exited early\n${output}`);
+    if (child.exitCode !== null) {
+      throw new Error(
+        `server exited early (code=${child.exitCode}, signal=${child.signalCode ?? 'none'})\n${output}`,
+      );
+    }
     try {
       const response = await fetch(`${origin}/health/live`);
       if (response.ok) return;

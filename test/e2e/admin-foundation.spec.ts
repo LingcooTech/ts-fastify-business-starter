@@ -62,6 +62,8 @@ test.beforeEach(async ({ page }) => {
           'storage.manage',
           'branding.read',
           'branding.manage',
+          'payments.read',
+          'payments.manage',
         ],
       }),
     });
@@ -701,6 +703,44 @@ test.beforeEach(async ({ page }) => {
       body: JSON.stringify(body),
     });
   });
+  await page.route('**/api/payments/**', async (route) => {
+    const request = route.request();
+    const pathname = new URL(request.url()).pathname;
+    const intent = {
+      id: 'af54dd84-ca70-4d17-bf80-ffaca336113c',
+      merchantReference: 'order-e2e-001',
+      provider: 'mock',
+      amountMinor: 12800,
+      refundedAmountMinor: 0,
+      currency: 'CNY',
+      description: 'Playwright payment',
+      status: 'pending',
+      revision: 2,
+      paidAt: null,
+      closedAt: null,
+      createdAt: '2026-09-02T08:00:00.000Z',
+      updatedAt: '2026-09-02T08:01:00.000Z',
+    };
+    const transaction = {
+      id: 'bf54dd84-ca70-4d17-bf80-ffaca336113c',
+      intentId: intent.id,
+      provider: 'mock',
+      providerTransactionId: `mock_txn_${intent.id}`,
+      amountMinor: intent.amountMinor,
+      currency: intent.currency,
+      status: 'pending',
+      lastQueriedAt: null,
+      createdAt: intent.createdAt,
+      updatedAt: intent.updatedAt,
+    };
+    const page = (items: unknown[]) => ({ items, page: 1, pageSize: 50, total: items.length });
+    if (pathname === '/api/payments/transactions')
+      return route.fulfill({ json: page([transaction]) });
+    if (pathname === '/api/payments/callbacks') return route.fulfill({ json: page([]) });
+    if (pathname === '/api/payments/refunds') return route.fulfill({ json: page([]) });
+    if (pathname === '/api/payments/intents') return route.fulfill({ json: page([intent]) });
+    return route.fulfill({ json: { ...intent, transactions: [transaction], refunds: [] } });
+  });
   let localeSource: 'default' | 'database' = 'default';
   let localeVersion: number | null = null;
   let localeValue = 'zh-CN';
@@ -1118,6 +1158,21 @@ test('manages application branding with stable asset references and a live theme
   expect(brandedButtonColor).not.toBe('rgb(22, 119, 255)');
 });
 
+test('reviews payment intents and runs a controlled reconciliation', async ({ page }) => {
+  test.setTimeout(60_000);
+  await page.goto('/admin/payments');
+  await expect(page.getByRole('heading', { name: '支付与对账' })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByText('order-e2e-001', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '详情' }).click();
+  await expect(page.getByText('Playwright payment', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '对账' }).click();
+  await expect(
+    page.locator('.ant-modal-confirm-title').filter({ hasText: '立即向 Provider 查询并对账？' }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: '确认对账' }).click();
+  await expect(page.getByText('对账完成')).toBeVisible();
+});
+
 test('hides protected navigation when the account has no matching permission', async ({ page }) => {
   await page.route('**/api/access/permissions', async (route) => {
     await route.fulfill({
@@ -1140,4 +1195,5 @@ test('hides protected navigation when the account has no matching permission', a
   await expect(page.getByRole('menuitem', { name: /邮件服务/ })).toHaveCount(0);
   await expect(page.getByRole('menuitem', { name: /素材库/ })).toHaveCount(0);
   await expect(page.getByRole('menuitem', { name: /应用品牌/ })).toHaveCount(0);
+  await expect(page.getByRole('menuitem', { name: /支付与对账/ })).toHaveCount(0);
 });

@@ -10,3 +10,4 @@ export * from '../modules/mail/infrastructure/persistence/mail.schema.js';
 export * from '../modules/notifications/infrastructure/persistence/notifications.schema.js';
 export * from '../modules/storage/infrastructure/persistence/storage.schema.js';
 export * from '../modules/branding/infrastructure/persistence/branding.schema.js';
+export * from '../modules/payments/infrastructure/persistence/payments.schema.js';

@@ -38,6 +38,11 @@ import {
   STORAGE_SETTINGS,
 } from './storage/public.js';
 import { createBrandingModule, createBrandingService } from './branding/public.js';
+import {
+  createPaymentsModule,
+  createPaymentsService,
+  PAYMENT_SETTINGS,
+} from './payments/public.js';
 
 export interface ApplicationModuleDependencies {
   environment: AppEnvironment;
@@ -52,6 +57,7 @@ export async function registerApplicationModules(
   const settingsRegistry = createSettingsRegistry();
   for (const definition of MAIL_SETTINGS) settingsRegistry.register(definition);
   for (const definition of STORAGE_SETTINGS) settingsRegistry.register(definition);
+  for (const definition of PAYMENT_SETTINGS) settingsRegistry.register(definition);
   const settings = createSettingsService({ ...dependencies, audit, registry: settingsRegistry });
   const idempotency = createIdempotencyService(dependencies);
   const jobs = createJobsService({
@@ -88,6 +94,11 @@ export async function registerApplicationModules(
     ...dependencies,
     assets: storage.library,
     references: storage.references,
+    audit,
+  });
+  const payments = createPaymentsService({
+    database: dependencies.database,
+    settings: settings.service,
     audit,
   });
   jobs.registry.register(storage.maintenance.deleteObjectJobHandler);
@@ -176,6 +187,14 @@ export async function registerApplicationModules(
       references: storage.references,
       audit,
       service: branding,
+    }),
+  );
+  await app.register(
+    createPaymentsModule({
+      database: dependencies.database,
+      settings: settings.service,
+      audit,
+      service: payments,
     }),
   );
 }
