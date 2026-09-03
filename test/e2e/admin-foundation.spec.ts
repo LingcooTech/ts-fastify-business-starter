@@ -923,13 +923,13 @@ test('renders the Admin foundation and navigates to the showcase', async ({ page
   test.setTimeout(60_000);
   await page.goto('/admin/');
 
-  await expect(page.getByRole('heading', { name: '工程基础' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '工作台' })).toBeVisible();
   await expect(page.getByText('运行正常')).toBeVisible();
 
   if (page.viewportSize() && page.viewportSize()!.width < 992) {
     await page.getByRole('button', { name: '打开导航' }).click();
   }
-  await page.getByRole('menuitem', { name: /UI 基础/ }).click();
+  await page.getByRole('menuitem', { name: /组件示例/ }).click();
   await expect(page.getByRole('heading', { name: 'UI 基础展示' })).toBeVisible({
     timeout: 20_000,
   });

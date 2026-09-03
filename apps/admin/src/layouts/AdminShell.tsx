@@ -14,15 +14,15 @@ import {
   Grid,
   Layout,
   Menu,
+  type MenuProps,
   Space,
   Tooltip,
-  Typography,
   theme,
 } from 'antd';
 import { useMemo, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
-import { foundationNavigation, selectedNavigationKey } from '../app/navigation';
+import { foundationNavigation, navigationGroups, selectedNavigationKey } from '../app/navigation';
 import { useThemeMode } from '../app/theme-context';
 import { CommandPalette } from '../components/CommandPalette';
 import { usePermissions } from '../features/access/PermissionContext';
@@ -38,7 +38,12 @@ function Brand({ collapsed }: { collapsed: boolean }) {
   return (
     <div className="admin-brand">
       <BrandMark compact />
-      {!collapsed && <span>{branding.appName}</span>}
+      {!collapsed && (
+        <div className="admin-brand__copy">
+          <strong>{branding.appName}</strong>
+          <span>Business Console</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -61,19 +66,25 @@ export function AdminShell() {
       foundationNavigation.filter((item) => !item.permission || permissions.has(item.permission)),
     [permissions],
   );
-  const menuItems = useMemo(
+  const menuItems = useMemo<MenuProps['items']>(
     () =>
-      visibleNavigation.map((item) => ({
-        key: item.key,
-        icon: item.icon,
-        label: item.label,
-      })),
+      navigationGroups
+        .map((group) => ({
+          type: 'group' as const,
+          key: group.key,
+          label: group.label,
+          children: visibleNavigation
+            .filter((item) => item.group === group.key)
+            .map((item) => ({ key: item.key, icon: item.icon, label: item.label })),
+        }))
+        .filter((group) => group.children.length > 0),
     [visibleNavigation],
   );
   const selectedKeys = [selectedNavigationKey(location.pathname)].filter(Boolean);
+  const activeNavigation = foundationNavigation.find((item) => item.key === selectedKeys[0]);
   const menu = (
     <Menu
-      theme="dark"
+      className="admin-navigation"
       mode="inline"
       selectedKeys={selectedKeys}
       items={menuItems}
@@ -93,6 +104,12 @@ export function AdminShell() {
         <Sider className="admin-sider" width={240} collapsedWidth={80} collapsed={collapsed}>
           <Brand collapsed={collapsed} />
           {menu}
+          {!collapsed && (
+            <div className="admin-sider__footer">
+              <span className="admin-sider__status" />
+              <span>服务运行正常</span>
+            </div>
+          )}
         </Sider>
       ) : (
         <Drawer
@@ -100,10 +117,14 @@ export function AdminShell() {
           size={280}
           open={drawerOpen}
           onClose={() => setDrawerOpen(false)}
-          styles={{ body: { padding: 0, background: '#001529' }, header: { display: 'none' } }}
+          styles={{ body: { padding: 0, background: '#111827' }, header: { display: 'none' } }}
         >
           <Brand collapsed={false} />
           {menu}
+          <div className="admin-sider__footer">
+            <span className="admin-sider__status" />
+            <span>服务运行正常</span>
+          </div>
         </Drawer>
       )}
       <Layout className="admin-main" style={{ marginInlineStart: desktop ? siderWidth : 0 }}>
@@ -114,7 +135,7 @@ export function AdminShell() {
             borderBottomColor: token.colorBorderSecondary,
           }}
         >
-          <Space>
+          <Space size={12}>
             <Button
               type="text"
               aria-label={desktop ? '折叠导航' : '打开导航'}
@@ -131,18 +152,24 @@ export function AdminShell() {
               }
               onClick={() => (desktop ? setCollapsed((value) => !value) : setDrawerOpen(true))}
             />
-            <Typography.Text type="secondary">{branding.appName} 管理后台</Typography.Text>
+            <div className="admin-header__context">
+              <span>{branding.appName} 管理后台</span>
+              <strong>{activeNavigation?.label ?? '管理后台'}</strong>
+            </div>
           </Space>
           <div className="admin-header__actions">
             <Tooltip title="快速导航（⌘/Ctrl + K）">
               <Button
-                type="text"
+                className="admin-search"
                 aria-label="快速导航"
                 icon={<SearchOutlined />}
                 onClick={() =>
                   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))
                 }
-              />
+              >
+                {desktop && <span>搜索功能</span>}
+                {desktop && <kbd>⌘ K</kbd>}
+              </Button>
             </Tooltip>
             <Tooltip title={mode === 'light' ? '切换深色主题' : '切换浅色主题'}>
               <Button
@@ -168,11 +195,14 @@ export function AdminShell() {
                 },
               }}
             >
-              <Button type="text">
+              <Button type="text" className="admin-account">
                 <Space>
-                  <Avatar size="small" icon={<UserOutlined />} />
+                  <Avatar className="admin-account__avatar" size={36} icon={<UserOutlined />} />
                   {desktop && (
-                    <span>{session.data?.user.displayName ?? session.data?.user.email}</span>
+                    <span className="admin-account__copy">
+                      <strong>{session.data?.user.displayName ?? session.data?.user.email}</strong>
+                      <span>系统管理员</span>
+                    </span>
                   )}
                 </Space>
               </Button>

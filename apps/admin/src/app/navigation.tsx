@@ -25,17 +25,31 @@ export interface AdminNavigationItem {
   path: string;
   icon?: ReactNode;
   permission?: PermissionKey;
+  group: 'workspace' | 'organization' | 'operations' | 'configuration' | 'account';
 }
 
 export const foundationNavigation: AdminNavigationItem[] = [
-  { key: 'dashboard', label: '概览', path: '/', icon: <DashboardOutlined /> },
-  { key: 'showcase', label: 'UI 基础', path: '/showcase', icon: <AppstoreOutlined /> },
+  {
+    key: 'dashboard',
+    label: '工作台',
+    path: '/',
+    icon: <DashboardOutlined />,
+    group: 'workspace',
+  },
+  {
+    key: 'showcase',
+    label: '组件示例',
+    path: '/showcase',
+    icon: <AppstoreOutlined />,
+    group: 'workspace',
+  },
   {
     key: 'access-users',
     label: '账号管理',
     path: '/access/users',
     icon: <UserOutlined />,
     permission: 'accounts.read',
+    group: 'organization',
   },
   {
     key: 'access-roles',
@@ -43,6 +57,7 @@ export const foundationNavigation: AdminNavigationItem[] = [
     path: '/access/roles',
     icon: <TeamOutlined />,
     permission: 'roles.read',
+    group: 'organization',
   },
   {
     key: 'audit',
@@ -50,6 +65,7 @@ export const foundationNavigation: AdminNavigationItem[] = [
     path: '/audit',
     icon: <FileSearchOutlined />,
     permission: 'audit.read',
+    group: 'organization',
   },
   {
     key: 'settings',
@@ -57,6 +73,7 @@ export const foundationNavigation: AdminNavigationItem[] = [
     path: '/settings',
     icon: <SettingOutlined />,
     permission: 'settings.read',
+    group: 'configuration',
   },
   {
     key: 'idempotency',
@@ -64,6 +81,7 @@ export const foundationNavigation: AdminNavigationItem[] = [
     path: '/idempotency',
     icon: <HistoryOutlined />,
     permission: 'idempotency.read',
+    group: 'operations',
   },
   {
     key: 'jobs',
@@ -71,6 +89,7 @@ export const foundationNavigation: AdminNavigationItem[] = [
     path: '/jobs',
     icon: <FieldTimeOutlined />,
     permission: 'jobs.read',
+    group: 'operations',
   },
   {
     key: 'outbox',
@@ -78,6 +97,7 @@ export const foundationNavigation: AdminNavigationItem[] = [
     path: '/outbox',
     icon: <SwapOutlined />,
     permission: 'outbox.read',
+    group: 'operations',
   },
   {
     key: 'mail',
@@ -85,6 +105,7 @@ export const foundationNavigation: AdminNavigationItem[] = [
     path: '/mail',
     icon: <MailOutlined />,
     permission: 'mail.read',
+    group: 'operations',
   },
   {
     key: 'storage',
@@ -92,6 +113,7 @@ export const foundationNavigation: AdminNavigationItem[] = [
     path: '/storage',
     icon: <PictureOutlined />,
     permission: 'storage.read',
+    group: 'configuration',
   },
   {
     key: 'branding',
@@ -99,12 +121,14 @@ export const foundationNavigation: AdminNavigationItem[] = [
     path: '/branding',
     icon: <BgColorsOutlined />,
     permission: 'branding.read',
+    group: 'configuration',
   },
   {
     key: 'notifications',
     label: '通知中心',
     path: '/notifications',
     icon: <NotificationOutlined />,
+    group: 'operations',
   },
   {
     key: 'payments',
@@ -112,20 +136,31 @@ export const foundationNavigation: AdminNavigationItem[] = [
     path: '/payments',
     icon: <DollarOutlined />,
     permission: 'payments.read',
+    group: 'operations',
   },
   {
     key: 'account-security',
     label: '账号安全',
     path: '/account/security',
     icon: <SafetyCertificateOutlined />,
+    group: 'account',
   },
   {
     key: 'active-sessions',
     label: '活动会话',
     path: '/account/sessions',
     icon: <LaptopOutlined />,
+    group: 'account',
   },
 ];
+
+export const navigationGroups = [
+  { key: 'workspace', label: '工作空间' },
+  { key: 'organization', label: '组织与安全' },
+  { key: 'operations', label: '业务运营' },
+  { key: 'configuration', label: '内容与配置' },
+  { key: 'account', label: '个人中心' },
+] as const satisfies ReadonlyArray<{ key: AdminNavigationItem['group']; label: string }>;
 
 export function selectedNavigationKey(pathname: string): string {
   const matched = foundationNavigation.find((item) =>
