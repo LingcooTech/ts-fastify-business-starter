@@ -39,3 +39,6 @@
 - Added Payments with idempotent business references, Mock Provider adapters, raw-body HMAC callback
   verification, immutable callback facts, guarded refunds, reconciliation, a business fact port,
   runtime contracts/API client, and a permission-aware Admin console.
+- Recorded the Webhook Inbox architecture decision: verified callbacks remain owned by their domain
+  modules, raw payloads are not persisted by default, and extraction waits for two independent real
+  integrations with proven shared lifecycle and replay requirements.

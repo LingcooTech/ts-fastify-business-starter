@@ -23,9 +23,10 @@
 - 阶段 10 Storage 与 Asset Management：已于 2026-09-01 完成；
 - 阶段 11 Application Branding：已于 2026-09-02 完成；
 - 阶段 12 Payments：已于 2026-09-03 完成；
+- 阶段 13 Webhook Inbox 决策：已于 2026-09-03 完成，当前不作为默认模块；
 - 当前质量门禁：Format、Lint、Typecheck、Unit、Build、Admin Static Smoke、PostgreSQL Migration/Integration、桌面/移动端 Playwright 和 Docker Production Smoke 均通过；
-- 下一阶段：Webhook Inbox 价值评估与产品化交付；
-- Webhook Inbox 是否成为默认模块，先以 Payments 回调边界和真实项目接入结果做决策。
+- 下一阶段：CLI 与产品化交付；
+- Webhook Inbox 保持领域模块自有回调事实与 Provider Adapter，达到两个独立真实接入等门槛后再评估通用化。
 
 ## 1. 最终决策
 
@@ -1035,11 +1036,16 @@ Payments 不导入或修改行业订单 Repository；原始回调 Body 不落库
 
 ### 阶段 13：Webhook Inbox 决策
 
-先用 Payments 的真实回调验证通用收件箱价值，再决定：
+已完成决策：当前不把 Webhook Inbox 作为 Starter 默认模块。
 
-- 作为默认模块实施；或
-- 保持 Payments 内部回调事实；或
-- 仅保留 Adapter Contract。
+1. Payments 继续拥有回调路由、原始 Body 验签、Provider 身份与金额校验、不可变回调事实和支付状态事务；
+2. Provider 差异继续留在 `PaymentProviderAdapter.verifyCallback`，不建立猜测签名和事件语义的万能 Adapter；
+3. 原始 Body 默认不落库，避免扩大 PII、凭据和支付数据的加密、保留、清理与访问控制范围；
+4. Transactional Outbox、Jobs 和 Idempotency 分别保持可靠发布、异步命令和主动 HTTP 请求重放边界；
+5. 不新增 `webhook_inbox` 表、通用公开端点、通用重放、权限和 Admin 页面；
+6. 至少两个独立领域或 Provider 完成真实接入，并明确事务、验签、防重放、载荷保留和重放副作用后再评估提取。
+
+完整依据和重新评估门槛见 `docs/webhook-inbox-decision.md`。
 
 ### 阶段 14：CLI 与产品化交付
 
@@ -1121,7 +1127,7 @@ Payments 不导入或修改行业订单 Repository；原始回调 Body 不落库
 - Secret 加密保存且只写不读；
 - 权限后端默认拒绝；
 - 文件上传检查 MIME、大小和访问策略；
-- 支付回调保留原始 Body 并验证签名；
+- 支付回调使用精确原始 Body 验证签名，默认不持久化原始 Body；
 - 日志、审计和错误响应不泄露凭据；
 - 依赖审计、Secret Scan 和安全响应头进入 CI。
 

@@ -102,10 +102,11 @@ pnpm e2e
 - [Storage 与 Asset Management](docs/storage.md)
 - [Application Branding](docs/branding.md)
 - [Payments](docs/payments.md)
+- [Webhook Inbox 架构决策](docs/webhook-inbox-decision.md)
 
 ## 实施边界
 
-通用模块按照 Identity、Access Control、Audit、Settings、Idempotency、Jobs、Outbox、Mail、Notifications、Storage、Branding、Payments 的顺序逐个闭环实施。
+通用模块按照 Identity、Access Control、Audit、Settings、Idempotency、Jobs、Outbox、Mail、Notifications、Storage、Branding、Payments 的顺序逐个闭环实施；Webhook Inbox 已完成架构决策，当前不作为默认模块。
 
 当前明确不包含 SaaS 多租户、CMS、Entitlement、AI Gateway，以及教育、零售或 Core Stack 的行业领域模型。完整顺序和完成标准见[通用模块实施方案](docs/common-business-modules-implementation-plan.md)。
 
