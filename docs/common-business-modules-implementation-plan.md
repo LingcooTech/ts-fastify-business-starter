@@ -24,8 +24,9 @@
 - 阶段 11 Application Branding：已于 2026-09-02 完成；
 - 阶段 12 Payments：已于 2026-09-03 完成；
 - 阶段 13 Webhook Inbox 决策：已于 2026-09-03 完成，当前不作为默认模块；
+- 阶段 14 CLI 与产品化交付：已于 2026-09-03 完成；
 - 当前质量门禁：Format、Lint、Typecheck、Unit、Build、Admin Static Smoke、PostgreSQL Migration/Integration、桌面/移动端 Playwright 和 Docker Production Smoke 均通过；
-- 下一阶段：CLI 与产品化交付；
+- 下一阶段：真实项目验证；
 - Webhook Inbox 保持领域模块自有回调事实与 Provider Adapter，达到两个独立真实接入等门槛后再评估通用化。
 
 ## 1. 最终决策
@@ -1049,15 +1050,20 @@ Payments 不导入或修改行业订单 Repository；原始回调 Body 不落库
 
 ### 阶段 14：CLI 与产品化交付
 
-任务：
+已完成内容：
 
-- Business Starter CLI；
-- 项目标识替换；
-- 维护者文件清理；
-- Generated Project Smoke；
-- npm 真实包生成测试；
-- Docker API/Worker/Admin/Web/PostgreSQL 验收；
-- 部署、升级、回滚和凭据轮换文档。
+1. 可发布的 `@lingcoo-tech/create-ts-fastify-business-starter` npm CLI 包及安全参数解析、非空目录拒绝和 Git/安装选项；
+2. `prepack` 从根目录 Allowlist 构建版本锁定的 `template.tar.gz`，用户生成时不依赖 GitHub 分支状态；
+3. 根 Starter、CLI 和内嵌模板三方版本一致性检查，以及 SemVer、Dist-tag、OIDC Provenance 发布流程；
+4. 根项目名、Workspace Scope、Docker/Compose、默认应用名和 Starter 标题替换，并在变长/变短后重新格式化生成树；
+5. CLI、内部版本、生成 Smoke、实施计划、发布文档和治理文件清理，Repository 元数据移除和 Changelog 重置；
+6. `.env`、Secret、Git 历史、依赖、构建产物、测试报告和符号链接不进入模板归档；
+7. 真实 `npm pack`、严格 tarball 文件 Allowlist、安装后 npm bin 调用和 CLI 生产依赖审计；
+8. 生成项目身份残留、非空目录保护、冻结锁文件安装和完整 `pnpm check` 验收；
+9. 生成项目 PostgreSQL、Migration/Bootstrap 幂等、API、Worker、Admin、Web、Caddy 和共享 Storage Docker Production Smoke；
+10. 发布、显式模板升级、应用回滚、数据库灾难恢复和 Settings/数据库/Provider/Registry/SSH 凭据轮换手册。
+
+CLI 只创建新项目，不覆盖已有业务项目；发布 npm 和真实项目接入仍分别需要人工授权和阶段 15 验证。
 
 ### 阶段 15：真实项目验证
 

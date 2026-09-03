@@ -53,7 +53,11 @@ pnpm dev:worker
 
 ## 创建新项目
 
-Business Starter CLI 将在通用模块完成后单独发布。当前仓库用于按实施方案逐模块建设和验证模板本身。
+```bash
+npx @lingcoo-tech/create-ts-fastify-business-starter@latest my-business-app
+```
+
+发布后可使用以上命令。CLI 包含与版本匹配的模板，默认初始化 Git 并执行冻结锁文件安装。维护者可运行 `pnpm smoke:generated` 验证真实 npm tarball 和生成项目，详见 [CLI 与产品化](docs/productization.md)。
 
 ## 开发业务模块
 
@@ -103,6 +107,7 @@ pnpm e2e
 - [Application Branding](docs/branding.md)
 - [Payments](docs/payments.md)
 - [Webhook Inbox 架构决策](docs/webhook-inbox-decision.md)
+- [CLI 与产品化](docs/productization.md)
 
 ## 实施边界
 

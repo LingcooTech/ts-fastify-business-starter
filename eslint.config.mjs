@@ -27,7 +27,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['create-ts-fastify-app-starter/**/*.mjs', 'scripts/**/*.mjs'],
+    files: ['create-ts-fastify-business-starter/**/*.mjs', 'scripts/**/*.mjs'],
     languageOptions: {
       globals: globals.node,
     },

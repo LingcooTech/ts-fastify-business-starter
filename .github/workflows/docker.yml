@@ -10,7 +10,7 @@ on:
       - 'apps/**'
       - 'packages/**'
       - 'scripts/**'
-      - 'create-ts-fastify-app-starter/**'
+      - 'create-ts-fastify-business-starter/**'
       - 'package.json'
       - 'pnpm-lock.yaml'
   workflow_dispatch:
@@ -53,3 +53,5 @@ jobs:
             APP_VERSION=${{ github.event.pull_request.head.sha || github.sha }}
       - name: Run production Docker smoke test
         run: corepack pnpm smoke:docker
+      - name: Run generated project production Docker smoke test
+        run: corepack pnpm smoke:generated:docker

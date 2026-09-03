@@ -4,6 +4,14 @@
   "private": true,
   "description": "A modular native Fastify business application starter with an independent Ant Design Admin.",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LingcooTech/ts-fastify-business-starter.git"
+  },
+  "homepage": "https://github.com/LingcooTech/ts-fastify-business-starter#readme",
+  "bugs": {
+    "url": "https://github.com/LingcooTech/ts-fastify-business-starter/issues"
+  },
   "packageManager": "pnpm@11.21.0",
   "engines": {
     "node": ">=24.0.0 <25"
@@ -24,10 +32,14 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check:toolchain": "node scripts/check-toolchain.mjs",
+    "check:starter-version": "node scripts/check-starter-version.mjs",
+    "check:cli": "node --check create-ts-fastify-business-starter/cli.mjs && node --test create-ts-fastify-business-starter/cli.test.mjs",
     "check:boundaries": "node scripts/check-module-boundaries.mjs",
-    "check": "corepack pnpm check:toolchain && corepack pnpm check:boundaries && corepack pnpm smoke:module-generator && corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build && corepack pnpm smoke:admin-static",
+    "check": "corepack pnpm check:toolchain && corepack pnpm check:starter-version && corepack pnpm check:cli && corepack pnpm check:boundaries && corepack pnpm smoke:module-generator && corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build && corepack pnpm smoke:admin-static",
     "generate:module": "node scripts/generate-module.mjs",
     "smoke:module-generator": "node scripts/verify-module-generator.mjs",
+    "smoke:generated": "node scripts/verify-generated-project.mjs",
+    "smoke:generated:docker": "node scripts/verify-generated-project.mjs --docker",
     "smoke:admin-static": "node scripts/verify-admin-static.mjs",
     "smoke:docker": "node scripts/verify-docker-smoke.mjs",
     "e2e": "playwright test",

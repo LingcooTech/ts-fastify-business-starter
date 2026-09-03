@@ -25,6 +25,7 @@ pnpm audit --prod --audit-level high
 - Admin 生产静态托管和深层路由刷新；
 - Admin 与 Web 的 UI 依赖和构建产物隔离；
 - npx 模板生成后无维护者文件和 starter 身份残留；
+- CLI npm tarball 只包含发布 Allowlist，且内嵌模板版本与 CLI/Starter 版本一致；
 - 生成项目冻结安装并执行完整 `pnpm check`；
 - production-only Docker dependencies；
 - migration 可重复执行；

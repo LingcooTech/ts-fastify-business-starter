@@ -1,0 +1,41 @@
+{
+  "name": "@lingcoo-tech/create-ts-fastify-business-starter",
+  "version": "0.1.0",
+  "templateVersion": "0.1.0",
+  "description": "Create a production-ready native Fastify business application workspace.",
+  "license": "Apache-2.0",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "type": "module",
+  "scripts": {
+    "check": "node --check cli.mjs && node --test cli.test.mjs",
+    "prepack": "node ../scripts/prepare-cli-package.mjs",
+    "postpack": "node ../scripts/cleanup-cli-package.mjs"
+  },
+  "bin": {
+    "create-ts-fastify-business-starter": "cli.mjs"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "dependencies": {
+    "prettier": "3.9.6"
+  },
+  "files": [
+    "cli.mjs",
+    "LICENSE",
+    "README.md",
+    "template.tar.gz"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LingcooTech/ts-fastify-business-starter.git",
+    "directory": "create-ts-fastify-business-starter"
+  },
+  "homepage": "https://github.com/LingcooTech/ts-fastify-business-starter",
+  "bugs": {
+    "url": "https://github.com/LingcooTech/ts-fastify-business-starter/issues"
+  }
+}

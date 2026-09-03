@@ -60,3 +60,49 @@ Migration 必须在新版本 API 启动前完成。数据库变更应保持向�
 
 首次部署必须配置随机的 `BOOTSTRAP_OWNER_PASSWORD`。Bootstrap 不会覆盖已存在账号的密码；
 Identity 阶段只创建账号，Access Control 阶段完成后同一个命令还会幂等分配系统 Owner 角色。
+
+## 版本升级
+
+生产部署必须使用不可变 Git SHA 镜像标签，不能依赖 `latest` 作为唯一回滚依据。
+
+升级前：
+
+1. 阅读 Changelog、Migration 和环境变量差异，确认旧 API/Worker 能在新 Schema 上短暂运行；
+2. 备份数据库并在隔离环境验证恢复，记录当前镜像 SHA、Compose 文件和环境配置版本；
+3. 在预发布环境执行 Migration 两次、Bootstrap 两次、完整 Docker Smoke 和关键业务验收；
+4. 确认 Jobs/Outbox 没有无法解释的持续积压或死信。
+
+升级顺序固定为 PostgreSQL Ready → Migration → Bootstrap → API/Worker → Readiness → Caddy。Migration
+必须采用 expand/contract：先增加兼容结构，等所有旧实例退出且数据回填完成后，后续版本才能删除旧结构。
+
+CLI 生成的项目不会自动接收模板升级。项目升级必须生成目标版本的临时基线并做显式 Git Diff，逐模块合并；不得把 CLI 指向已有非空项目覆盖业务代码。
+
+## 应用回滚
+
+普通回滚只切换到上一个已验证的不可变镜像，不自动执行 Down Migration：
+
+1. 停止新版本 Worker，避免继续产生只有新版本理解的副作用；
+2. 确认当前数据库结构仍与旧版本兼容；
+3. 将 `APP_IMAGE` 和 `APP_VERSION` 切回记录的旧 SHA；
+4. 启动旧 API/Worker，检查 readiness、Worker 轮询、Jobs/Outbox 和关键页面；
+5. 保留新 Migration，并为不兼容问题发布向前修复 Migration。
+
+如果 Migration 已破坏旧版本兼容性，不得直接启动旧镜像。先停止写流量与 Worker，在隔离环境验证备份恢复，再按事故流程恢复数据库和匹配镜像。数据库恢复会丢失备份时间点之后的数据，只能作为经过负责人确认的灾难恢复操作。
+
+## 凭据轮换
+
+所有轮换都遵循“新增 → 双凭据窗口 → 验证 → 撤销旧凭据”，不得先删除仍被运行实例或密文引用的旧值。
+
+Settings 加密密钥：
+
+1. 在 `SETTINGS_ENCRYPTION_KEYS` 加入新 Key ID 和随机密钥，同时保留旧密钥；
+2. 把 `SETTINGS_ENCRYPTION_CURRENT_KEY_ID` 切到新 ID 并完成所有 API/Worker 实例部署；
+3. 通过受权 Admin 执行 Secret Rotation；
+4. 验证 `system_settings.encryption_key_id` 已无旧 ID，确认旧实例全部退出；
+5. 从 Keyring 删除旧密钥并再次部署。
+
+数据库凭据优先创建新角色、授予最小权限、更新所有实例并验证，再撤销旧角色；如果只能修改同一角色密码，应安排维护窗口。SMTP、S3 和 Payment Provider 凭据应使用供应商提供的双 Key 窗口，先验证连接或回调验签再撤销旧 Key。
+
+Registry、GitHub Actions、Deploy SSH 和云平台凭据必须在对应控制面轮换，并更新受保护 Environment/Secrets。发生泄漏时跳过常规窗口：立即吊销受影响凭据、暂停相关部署或 Provider 入口、检查 Audit/平台访问日志，轮换派生凭据后再恢复服务。
+
+轮换过程中不得把 Secret 写入命令参数、Shell 历史、日志、Issue、PR 或 Audit Metadata。

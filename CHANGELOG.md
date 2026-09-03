@@ -42,3 +42,6 @@
 - Recorded the Webhook Inbox architecture decision: verified callbacks remain owned by their domain
   modules, raw payloads are not persisted by default, and extraction waits for two independent real
   integrations with proven shared lifecycle and replay requirements.
+- Added the publish-ready Business Starter CLI with an embedded versioned template, project identity
+  replacement, maintainer cleanup, strict npm tarball verification, generated-project checks and
+  Docker production acceptance, plus release, upgrade, rollback, and credential-rotation runbooks.
